@@ -1,0 +1,27 @@
+{
+  "description": "متجهات اختبار مطابقة جهات الاتصال والأرقام والألقاب (القسم 7.3)",
+  "cases": [
+    {
+      "input_phone": "0501234567",
+      "default_region": "SA",
+      "expected_e164": "+966501234567"
+    },
+    {
+      "input_phone": "+966 55 987 6543",
+      "default_region": "SA",
+      "expected_e164": "+966559876543"
+    },
+    {
+      "search_term": "ابو فهد",
+      "contact_display_name": "أبو فهد (محمد الخالدي)",
+      "aliases": ["الوالد", "ابو فهد"],
+      "expected_match": true
+    },
+    {
+      "search_term": "الوالد",
+      "contact_display_name": "فهد السليمان",
+      "aliases": ["الوالد", "أبي"],
+      "expected_match": true
+    }
+  ]
+}

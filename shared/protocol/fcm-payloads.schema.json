@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FCMPayload",
+  "description": "حمولة رسائل الإيقاظ عبر FCM الخالية من أي محتوى حساس (القسم 8.4)",
+  "type": "object",
+  "required": ["type", "reason", "ref", "seq"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["wake"]
+    },
+    "reason": {
+      "type": "string",
+      "enum": ["action_pending", "briefing_ready", "file_ready", "sync_needed"]
+    },
+    "ref": {
+      "type": "string",
+      "description": "معرف الكيان المعني (action_id, briefing_id, file_id)"
+    },
+    "seq": {
+      "type": "integer",
+      "description": "الرقم التسلسلي للرسالة المقابلة في outbound_messages"
+    }
+  }
+}

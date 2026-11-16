@@ -1,0 +1,39 @@
+profiles:
+  reasoner:
+    chain:
+      - base_url: "http://192.168.100.28:20128/v1"
+        model: "gpt-4o"
+        api_key_env: "LLM_KEY_A"
+        timeout_s: 60
+    max_context_tokens: 128000
+    tools: true
+    cloud: true
+
+  fast:
+    chain:
+      - base_url: "http://192.168.100.28:20128/v1"
+        model: "gpt-4o-mini"
+        api_key_env: "LLM_KEY_A"
+        timeout_s: 30
+    tools: false
+    cloud: true
+
+  sensitive_local:
+    enabled: false
+    chain:
+      - base_url: "http://localhost:11434/v1"
+        model: "qwen2.5:7b"
+        api_key_env: ""
+    cloud: false
+
+  stt:
+    provider: "openai_compat"
+    chain:
+      - base_url: "http://192.168.100.28:20128/v1"
+        model: "whisper-1"
+        api_key_env: "LLM_KEY_A"
+
+policy:
+  allow_cloud_for_sensitive: false
+  forbid_free_tier: true
+  daily_token_budget: 2000000

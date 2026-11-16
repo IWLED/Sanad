@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WebSocketEnvelope",
+  "description": "الغلاف الموحد لجميع رسائل WebSocket بين الخادم والتطبيق (القسم 8.3)",
+  "type": "object",
+  "required": ["v", "type", "id", "ts", "payload"],
+  "properties": {
+    "v": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "إصدار البروتوكول"
+    },
+    "type": {
+      "type": "string",
+      "description": "نوع الرسالة (action_request, user_message, ...)"
+    },
+    "id": {
+      "type": "string",
+      "description": "معرف الرسالة الفريد UUIDv7"
+    },
+    "seq": {
+      "type": "integer",
+      "description": "الرقم التسلسلي للرسائل الصادرة من الخادم للجهاز للاستئناف والترتيب"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ختم زمني بصيغة ISO-8601"
+    },
+    "payload": {
+      "type": "object",
+      "description": "الحمولة الخاصة بكل نوع رسالة"
+    }
+  }
+}

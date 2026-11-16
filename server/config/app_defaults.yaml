@@ -1,0 +1,39 @@
+monitored_apps_default:
+  - {package: com.whatsapp,                 label: WhatsApp,          monitor: true, allow_reply: false}
+  - {package: com.whatsapp.w4b,             label: WhatsApp Business, monitor: true, allow_reply: false}
+  - {package: org.telegram.messenger,       label: Telegram,          monitor: true, allow_reply: false}
+  - {package: org.telegram.messenger.web,   label: Telegram (web),    monitor: true, allow_reply: false}
+
+ignored_packages:
+  - com.google.android.gm
+  - com.google.android.apps.messaging
+  - com.samsung.android.messaging
+  - com.android.dialer
+  - com.google.android.dialer
+
+ignore_notification_text_patterns:
+  - "checking for new messages"
+  - "جارٍ التحقق من رسائل جديدة"
+
+missed_call_patterns:
+  - "مكالمة فائتة"
+  - "Missed voice call"
+  - "Missed video call"
+
+media_hint_patterns:
+  voice: ["🎤", "رسالة صوتية", "Voice message"]
+  image: ["📷", "صورة", "Photo"]
+  sticker: ["ملصق", "Sticker"]
+
+scoring:
+  high_priority: 100
+  missed_call_high: 50
+  needs_response: 30
+  urgency_each: 20
+  deadline_24h: 25
+  family: 10
+  recency: 5
+
+breakthrough:
+  contacts: []
+  sources: []

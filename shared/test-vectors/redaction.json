@@ -1,0 +1,47 @@
+{
+  "description": "متجهات اختبار الحجب وتصنيف الحساسية المشترك (R-08, R-09, القسم 9.7)",
+  "cases": [
+    {
+      "input": "رمز التحقق الخاص بك هو 4920 لا تشاركه مع أحد",
+      "classification": "secret",
+      "should_store_content": false,
+      "expected_summary": "رمز تحقق OTP",
+      "note": "OTP عربي - محتوى secret لا يخزن"
+    },
+    {
+      "input": "Your verification code is: 839210. Valid for 5 minutes.",
+      "classification": "secret",
+      "should_store_content": false,
+      "expected_summary": "OTP verification code",
+      "note": "OTP إنجليزي - محتوى secret لا يخزن"
+    },
+    {
+      "input": "تم خصم 150.00 ر.س من حسابك عبر مدى لدى سوبرماركت الراجحي رصيدك 4500 ر.س",
+      "classification": "sensitive",
+      "should_store_content": true,
+      "redacted_contains": ["[مخفي]"],
+      "note": "إشعار بنكي مدى وحسابات مالية"
+    },
+    {
+      "input": "رقم الآيبان الخاص بي هو SA0380000000608010167519",
+      "classification": "sensitive",
+      "should_store_content": true,
+      "redacted_contains": ["••••7519"],
+      "note": "رقم آيبان سعودي"
+    },
+    {
+      "input": "رقم الهوية الوطنية 1083928192 ورقم الإقامة 2091827364",
+      "classification": "sensitive",
+      "should_store_content": true,
+      "redacted_contains": ["••••8192", "••••7364"],
+      "note": "هوية وطنية وإقامة نظامية"
+    },
+    {
+      "input": "السلام عليكم يا أبو فهد، موعدنا اليوم الساعة 5 العصر في الكافيه",
+      "classification": "normal",
+      "should_store_content": true,
+      "redacted_contains": [],
+      "note": "رسالة عادية لا تحوي أسراراً"
+    }
+  ]
+}

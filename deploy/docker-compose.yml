@@ -1,0 +1,68 @@
+name: secretary
+
+services:
+  api:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+    env_file: [.env]
+    secrets: [jwt_signing_key, enc_key, fcm_service_account, llm_key_a, llm_key_b, pepper]
+    volumes:
+      - data:/data
+      - exports:/exports
+    user: "10001:10001"
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks: [internal]
+
+  worker:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    command: ["python", "-m", "app.workers.run"]
+    env_file: [.env]
+    secrets: [jwt_signing_key, enc_key, fcm_service_account, llm_key_a, llm_key_b, pepper]
+    volumes:
+      - data:/data
+      - exports:/exports
+    user: "10001:10001"
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [internal]
+
+volumes:
+  data:
+  exports:
+
+networks:
+  internal:
+    internal: false
+
+secrets:
+  jwt_signing_key:
+    file: ./secrets/jwt_signing_key
+  enc_key:
+    file: ./secrets/enc_key
+  pepper:
+    file: ./secrets/pepper
+  fcm_service_account:
+    file: ./secrets/fcm_service_account.json
+  llm_key_a:
+    file: ./secrets/llm_key_a
+  llm_key_b:
+    file: ./secrets/llm_key_b
