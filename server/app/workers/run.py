@@ -8,6 +8,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[impo
 
 from app.config import settings
 from app.core.audit import verify_audit_chain
+from app.core.briefing.engine import generate_briefing
 from app.core.safety.logging_filter import configure_logging, logger
 from app.db.base import async_session_factory
 from app.workers.retention import run_retention_cleanup
@@ -21,6 +22,18 @@ async def job_verify_audit_log() -> None:
             logger.info("scheduled_audit_verification_ok", message=msg)
         else:
             logger.error("scheduled_audit_verification_tampered", message=msg)
+
+
+async def job_morning_briefing() -> None:
+    """توليد وتسليم الإيجاز الصباحي الساعة 07:30."""
+    logger.info("scheduled_morning_briefing_started")
+    await generate_briefing(kind="morning")
+
+
+async def job_evening_briefing() -> None:
+    """توليد وتسليم ملخص المساء الساعة 21:00."""
+    logger.info("scheduled_evening_briefing_started")
+    await generate_briefing(kind="on_demand")
 
 
 async def main() -> None:
@@ -43,6 +56,24 @@ async def main() -> None:
         hour=3,
         minute=30,
         id="daily_retention_cleanup",
+        coalesce=True,
+        misfire_grace_time=600,
+    )
+    scheduler.add_job(
+        job_morning_briefing,
+        "cron",
+        hour=7,
+        minute=30,
+        id="morning_briefing",
+        coalesce=True,
+        misfire_grace_time=600,
+    )
+    scheduler.add_job(
+        job_evening_briefing,
+        "cron",
+        hour=21,
+        minute=0,
+        id="evening_briefing",
         coalesce=True,
         misfire_grace_time=600,
     )

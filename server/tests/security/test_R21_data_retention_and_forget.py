@@ -165,11 +165,15 @@ async def test_R21_forget_contact_completely(memory_db_session: AsyncSession) ->
 
     # التحقق من تدوين الحدث في سجل التدقيق
     audits = (
-        await session.execute(
-            select(AuditLog).where(
-                AuditLog.event == "contact_forgotten_completely",
-                AuditLog.ref_id == contact_id,
+        (
+            await session.execute(
+                select(AuditLog).where(
+                    AuditLog.event == "contact_forgotten_completely",
+                    AuditLog.ref_id == contact_id,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(audits) >= 1

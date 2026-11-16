@@ -13,7 +13,7 @@ class BaseTool(ABC):
     description: str
     args_model: type[BaseModel]
     risk_tier: int  # 0: قراءة, 1: داخلي قابل للعكس, 2: تواصل خارجي, 3: عالي الخطورة
-    executor: str   # device | server | none
+    executor: str  # device | server | none
     returns_untrusted: bool = False
 
     def to_openai_tool(self) -> dict[str, Any]:

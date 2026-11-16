@@ -3,11 +3,10 @@
 import json
 import time
 from datetime import UTC, datetime
-from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.core.agent.context import assemble_agent_context
 from app.core.agent.policy import AgentSessionState, policy
 from app.core.hitl.engine import hitl_engine
 from app.core.llm.client import LLMClient
@@ -42,31 +41,26 @@ class AgentRunner:
         user_message: str,
         session: AsyncSession,
         history_messages: list[dict[str, str]] | None = None,
+        trigger_event_id: str | None = None,
     ) -> str:
         """تشغيل دورة الوكيل الكاملة مع الالتزام بالحدود القصوى R-18."""
         agent_session = AgentSessionState(device_id=device_id)
         t0 = time.time()
-        now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
 
-        # 1. بناء السياق المبدئي
-        messages: list[dict[str, Any]] = [
-            {
-                "role": "system",
-                "content": (
-                    f"{SYSTEM_PROMPT}\n\nالوقت الحالي: {now_str}\n"
-                    f"المنطقة الزمنية: {settings.timezone}"
-                ),
-            }
-        ]
+        # 1. بناء السياق المتقدم (التعليمات، التفضيلات، الذاكرة، والتاريخ الحديث)
+        messages = await assemble_agent_context(
+            user_query=user_message,
+            device_id=device_id,
+            session=session,
+            trigger_event_id=trigger_event_id,
+        )
 
         if history_messages:
             messages.extend(history_messages)
 
-        messages.append({"role": "user", "content": user_message})
-
         # حفظ رسالة المستخدم في chat_messages
         user_chat = ChatMessage(
-            id=f"msg_{int(time.time()*1000)}",
+            id=f"msg_{int(time.time() * 1000)}",
             role="user",
             source="text",
             content=user_message,
@@ -192,7 +186,7 @@ class AgentRunner:
 
                 # حفظ الرد في قاعدة البيانات
                 assistant_chat = ChatMessage(
-                    id=f"msg_{int(time.time()*1000)}",
+                    id=f"msg_{int(time.time() * 1000)}",
                     role="assistant",
                     source="text",
                     content=final_text,

@@ -68,4 +68,3 @@ async def get_authenticated_device_id(
 ) -> str:
     """استرجاع معرف الجهاز الموثوق فقط."""
     return device.id
-

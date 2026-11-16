@@ -83,11 +83,7 @@ async def cli_emergency_kill() -> None:
         await session.execute(stmt_actions)
 
         # 3. إلغاء تفعيل كافة الأجهزة المتصلة
-        stmt_devices = (
-            update(Device)
-            .where(Device.revoked_at.is_(None))
-            .values(revoked_at=now_iso)
-        )
+        stmt_devices = update(Device).where(Device.revoked_at.is_(None)).values(revoked_at=now_iso)
         await session.execute(stmt_devices)
 
         # 4. توثيق الحدث في سجل التدقيق

@@ -64,6 +64,7 @@ async def run_retention_cleanup(session: AsyncSession | None = None) -> dict[str
 
 async def forget_contact(identifier: str, session: AsyncSession | None = None) -> bool:
     """حذف شامل لجهة اتصال وكافة أحداثها استجابة لطلب المستخدم (R-21 Forget)."""
+
     async def _forget(s: AsyncSession) -> bool:
         # البحث بالمعرف أو بالاسم أو بالرقم/اللقب من جدول المعرفات
         stmt = (

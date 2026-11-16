@@ -72,10 +72,15 @@ class ToolRegistry:
 
         # تسجيل أدوات صندوق الوارد (المرحلة 2)
         from app.tools.inbox import GetEventTool, GetThreadTool, SearchInboxTool
+        from app.tools.memory import RememberTool, SearchMemoryTool
+        from app.tools.reply import ProposeReplyTool
 
         self.register(SearchInboxTool())
         self.register(GetThreadTool())
         self.register(GetEventTool())
+        self.register(RememberTool())
+        self.register(SearchMemoryTool())
+        self.register(ProposeReplyTool())
 
     def register(self, tool: BaseTool) -> None:
         self._tools[tool.name] = tool

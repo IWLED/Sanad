@@ -61,6 +61,14 @@ class ConnectionManager:
                 logger.error("ws_send_failed", device_id=device_id, error=str(e))
                 return False
 
+    async def broadcast_json(self, data: dict[str, Any]) -> int:
+        """بث رسالة JSON لكافة الأجهزة المتصلة حالياً."""
+        count = 0
+        for dev_id in list(self.active_connections.keys()):
+            if await self.send_json(dev_id, data):
+                count += 1
+        return count
+
     async def enqueue_and_send(
         self,
         session: AsyncSession,

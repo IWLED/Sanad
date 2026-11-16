@@ -1,5 +1,6 @@
 """نقطة استقبال واستيعاب أحداث الإشعارات والرسائل والمكالمات (/v1/ingest/events)."""
 
+import asyncio
 import uuid
 from datetime import UTC, datetime
 
@@ -9,6 +10,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_authenticated_device_id
+from app.core.agent.autonomous_trigger import evaluate_and_trigger_reply_suggestion
 from app.core.audit import append_audit_log
 from app.core.safety.logging_filter import logger
 from app.core.safety.redactor import classify_and_redact
@@ -71,6 +73,7 @@ async def ingest_events(
     """استقبال مجمّع للأحداث مع كشف التكرار (Idempotency) وحجب الأسرار R-09 وفهرسة FTS5."""
     now_iso = datetime.now(UTC).isoformat()
     results: list[IngestEventResultItem] = []
+    reply_candidates: list[str] = []
     created_count = 0
     duplicate_count = 0
 
@@ -180,6 +183,9 @@ async def ingest_events(
         )
 
         created_count += 1
+        if reply_capable == 1 and stored_content:
+            reply_candidates.append(event_id)
+
         results.append(
             IngestEventResultItem(
                 external_id=item.external_id,
@@ -200,6 +206,12 @@ async def ingest_events(
             "events_ingested_batch_success",
             created_count=created_count,
             duplicate_count=duplicate_count,
+        )
+
+    # 8. تشغيل الاقتراح الذاتي للردود في الخلفية لكل حدث مؤهل
+    for candidate_id in reply_candidates:
+        asyncio.create_task(
+            evaluate_and_trigger_reply_suggestion(event_id=candidate_id, device_id=device_id)
         )
 
     return IngestEventsResponse(
