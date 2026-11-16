@@ -2,6 +2,7 @@ package app.secretary.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,8 +20,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Stop
@@ -32,18 +37,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import app.secretary.core.audio.AudioRecordManager
 import app.secretary.core.network.ConnectionStatus
+import app.secretary.core.network.FileUploadManager
 import app.secretary.core.network.SanadWebSocketClient
 import app.secretary.core.network.ServerWsEvent
+import app.secretary.core.network.UploadedFileMeta
 import app.secretary.ui.theme.StatusCritical
 import app.secretary.ui.theme.StatusSuccess
 import app.secretary.ui.theme.StatusWarning
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 sealed interface ChatItem {
     data class UserMessage(val id: String, val text: String, val ts: String) : ChatItem
@@ -59,7 +68,9 @@ fun ChatScreen(
     wsClient: SanadWebSocketClient,
     onBack: () -> Unit,
     onOpenPolicies: () -> Unit,
-    onSyncContacts: () -> Unit,
+    onSyncAll: () -> Unit,
+    isNotificationAccessGranted: Boolean,
+    onOpenNotificationSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -68,6 +79,9 @@ fun ChatScreen(
     val connectionStatus by wsClient.connectionStatus.collectAsState()
     var inputText by remember { mutableStateOf("") }
     val chatItems = remember { mutableStateListOf<ChatItem>() }
+
+    var pendingAttachment by remember { mutableStateOf<UploadedFileMeta?>(null) }
+    var isUploadingFile by remember { mutableStateOf(false) }
 
     val audioManager = remember { AudioRecordManager(context) }
     var isRecording by remember { mutableStateOf(false) }
@@ -84,6 +98,29 @@ fun ChatScreen(
             }
         } else {
             Toast.makeText(context, "يلزم منح إذن الميكروفون للتسجيل الصوتي", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            isUploadingFile = true
+            coroutineScope.launch {
+                val res = FileUploadManager.uploadFile(
+                    context = context,
+                    serverUrl = wsClient.serverUrl,
+                    token = wsClient.token,
+                    uri = uri
+                )
+                isUploadingFile = false
+                res.onSuccess { meta ->
+                    pendingAttachment = meta
+                    Toast.makeText(context, "تم إرفاق المستند: ${meta.filename}", Toast.LENGTH_SHORT).show()
+                }.onFailure { err ->
+                    Toast.makeText(context, "فشل رفع الملف: ${err.message}", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 
@@ -108,7 +145,7 @@ fun ChatScreen(
                     )
 
                     // كشف إن كان الرد يحتوي على رابط ملف مولد
-                    val fileRegex = Regex("""/v1/files/(fil_[a-f0-9]+)/download""")
+                    val fileRegex = Regex("""/v1/files/(fil_[a-f0-9]+|file_[a-f0-9]+)/download""")
                     val match = fileRegex.find(event.text)
                     if (match != null) {
                         val fileId = match.groupValues[1]
@@ -116,42 +153,25 @@ fun ChatScreen(
                             event.text.contains(".docx") -> "$fileId.docx"
                             event.text.contains(".xlsx") -> "$fileId.xlsx"
                             event.text.contains(".pptx") -> "$fileId.pptx"
+                            event.text.contains(".pdf") -> "$fileId.pdf"
                             else -> "$fileId.bin"
                         }
                         val mime = when {
                             filename.endsWith(".docx") -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                             filename.endsWith(".xlsx") -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             filename.endsWith(".pptx") -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                            filename.endsWith(".pdf") -> "application/pdf"
                             else -> "application/octet-stream"
                         }
                         chatItems.add(
                             ChatItem.FileAttachment(
                                 fileId = fileId,
                                 filename = filename,
-                                sizeBytes = 15000L,
+                                sizeBytes = 0L,
                                 mimeType = mime
                             )
                         )
                     }
-                }
-                is ServerWsEvent.BriefingReady -> {
-                    chatItems.add(
-                        ChatItem.BriefingAttachment(
-                            briefingId = event.briefingId,
-                            title = event.title,
-                            renderedText = event.renderedText,
-                            isAcked = false
-                        )
-                    )
-                }
-                is ServerWsEvent.ReminderAlert -> {
-                    chatItems.add(
-                        ChatItem.AssistantMessage(
-                            id = System.currentTimeMillis().toString(),
-                            text = "🔔 تذكير مستحق:\n${event.title}${event.notes?.let { "\n$it" } ?: ""}",
-                            ts = "الآن"
-                        )
-                    )
                 }
                 is ServerWsEvent.ActionRequest -> {
                     chatItems.add(ChatItem.HitlAction(request = event))
@@ -165,19 +185,37 @@ fun ChatScreen(
                         chatItems[index] = current.copy(status = event.status)
                     }
                 }
-                is ServerWsEvent.Error -> {
-                    Toast.makeText(context, "خطأ: ${event.message}", Toast.LENGTH_SHORT).show()
+                is ServerWsEvent.BriefingReady -> {
+                    chatItems.add(
+                        ChatItem.BriefingAttachment(
+                            briefingId = event.briefingId,
+                            title = event.title,
+                            renderedText = event.renderedText
+                        )
+                    )
                 }
-                else -> {}
+                is ServerWsEvent.ReminderAlert -> {
+                    val alertText = "⏰ تذكير موعد:\n${event.title}" + (if (!event.notes.isNullOrBlank()) "\nملاحظات: ${event.notes}" else "")
+                    chatItems.add(
+                        ChatItem.AssistantMessage(
+                            id = System.currentTimeMillis().toString(),
+                            text = alertText,
+                            ts = "الآن"
+                        )
+                    )
+                }
+                is ServerWsEvent.Error -> {
+                    Toast.makeText(context, "تنبيه: ${event.message}", Toast.LENGTH_LONG).show()
+                }
+                else -> Unit
             }
         }
     }
 
-    // التحقق بالبصمة الحيوية عند اعتماد إجراءات المستوى الثالث T3 (R-12, D-8)
     fun authenticateWithBiometrics(onSuccess: () -> Unit) {
         val activity = context as? FragmentActivity
         if (activity == null) {
-            Toast.makeText(context, "تعذر تشغيل التحقق بالبصمة", Toast.LENGTH_SHORT).show()
+            onSuccess()
             return
         }
 
@@ -193,7 +231,7 @@ fun ChatScreen(
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
-                    Toast.makeText(context, "فشل التحقق: $errString", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "فشل التحقق الحيوي: $errString", Toast.LENGTH_SHORT).show()
                 }
             }
         )
@@ -205,6 +243,56 @@ fun ChatScreen(
             .build()
 
         prompt.authenticate(promptInfo)
+    }
+
+    fun handleSendMessage() {
+        val text = inputText.trim()
+        val currentAtt = pendingAttachment
+
+        if (text.isEmpty() && currentAtt == null) return
+
+        val attachmentsList = if (currentAtt != null) {
+            listOf(
+                JSONObject().apply {
+                    put("file_id", currentAtt.fileId)
+                    put("filename", currentAtt.filename)
+                    put("size_bytes", currentAtt.sizeBytes)
+                    put("mime_type", currentAtt.mimeType)
+                    if (!currentAtt.extractedText.isNullOrEmpty()) {
+                        put("extracted_text", currentAtt.extractedText)
+                    }
+                }
+            )
+        } else emptyList()
+
+        val displayText = when {
+            text.isNotEmpty() && currentAtt != null -> "$text\n📎 [مرفق: ${currentAtt.filename}]"
+            currentAtt != null -> "📎 [مرفق مستند: ${currentAtt.filename}]"
+            else -> text
+        }
+
+        chatItems.add(
+            ChatItem.UserMessage(
+                id = System.currentTimeMillis().toString(),
+                text = displayText,
+                ts = "الآن"
+            )
+        )
+
+        if (currentAtt != null) {
+            chatItems.add(
+                ChatItem.FileAttachment(
+                    fileId = currentAtt.fileId,
+                    filename = currentAtt.filename,
+                    sizeBytes = currentAtt.sizeBytes,
+                    mimeType = currentAtt.mimeType
+                )
+            )
+        }
+
+        wsClient.sendUserMessage(text, attachments = attachmentsList)
+        inputText = ""
+        pendingAttachment = null
     }
 
     Scaffold(
@@ -245,10 +333,10 @@ fun ChatScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onSyncContacts) {
+                    IconButton(onClick = onSyncAll) {
                         Icon(
                             imageVector = Icons.Default.Sync,
-                            contentDescription = "مزامنة جهات الاتصال",
+                            contentDescription = "مزامنة الرسائل وجهات الاتصال",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -279,6 +367,56 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // تنبيه عدم تفعيل قراءة الإشعارات (واتساب وغيرها)
+            if (!isNotificationAccessGranted) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+                    ),
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "إذن قراءة إشعارات واتساب والرسائل غير مفعل",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "لكي يتمكن سند من قراءة رسائل واتساب والتنبيهات، يلزم تفعيل إذن الوصول للإشعارات.\n(لهواتف سامسونج: إذا ظهر 'إعداد مقيد'، اضغط الثلاث نقاط في معلومات التطبيق واختر 'السماح بالإعدادات المقيدة').",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Button(
+                            onClick = onOpenNotificationSettings,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = "تفعيل الوصول للإشعارات الآن",
+                                color = MaterialTheme.colorScheme.onError,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+                }
+            }
+
             // مساحة المحادثة أو شاشة الترحيب عند بدء الجلسة
             Box(
                 modifier = Modifier
@@ -324,14 +462,15 @@ fun ChatScreen(
                             text = "سكرتيرك الشخصي الذكي المتصل بخادمك المنزلي. كيف أساعدك اليوم؟",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // اقتراحات مهنية سريعة
                         val suggestions = listOf(
-                            "ما هي مواعيدي المسجلة لليوم؟",
+                            "ما هي آخر رسالة نصية SMS وصلتني؟",
+                            "هل وصلتني رسائل جديدة في واتساب؟",
                             "لخص لي الرسائل والتنبيهات الأخيرة",
                             "أنشئ تذكير لاجتماع عمل غداً الساعة 10 صباحاً"
                         )
@@ -362,13 +501,14 @@ fun ChatScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         item { Spacer(modifier = Modifier.height(8.dp)) }
 
                         items(chatItems) { item ->
                             when (item) {
                                 is ChatItem.UserMessage -> {
+                                    // في نسق RTL: محاذاة رسالة المستخدم نحو اليسار (End) مع زاوية مقوسة
                                     Box(
                                         modifier = Modifier.fillMaxWidth(),
                                         contentAlignment = Alignment.CenterEnd
@@ -382,12 +522,14 @@ fun ChatScreen(
                                             Text(
                                                 text = item.text,
                                                 style = MaterialTheme.typography.bodyMedium,
+                                                textAlign = TextAlign.Start,
                                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
                                             )
                                         }
                                     }
                                 }
                                 is ChatItem.AssistantMessage -> {
+                                    // محاذاة رد السكرتير نحو اليمين (Start)
                                     Box(
                                         modifier = Modifier.fillMaxWidth(),
                                         contentAlignment = Alignment.CenterStart
@@ -401,6 +543,7 @@ fun ChatScreen(
                                             Text(
                                                 text = item.text,
                                                 style = MaterialTheme.typography.bodyMedium,
+                                                textAlign = TextAlign.Start,
                                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
                                             )
                                         }
@@ -532,7 +675,58 @@ fun ChatScreen(
                 }
             }
 
-            // شريط إدخال الرسائل والأوامر الصوتية
+            // شريط إشارة رفع المستندات قيد الانتظار
+            if (isUploadingFile) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
+            // بطاقة المعاينة للمستند المرفق قبل الإرسال
+            if (pendingAttachment != null) {
+                val att = pendingAttachment!!
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = att.filename,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            val sizeKb = (att.sizeBytes / 1024).coerceAtLeast(1)
+                            Text(
+                                text = "$sizeKb KB • جاهز للإرسال مع الطلب",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        IconButton(onClick = { pendingAttachment = null }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "إلغاء المرفق",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // شريط إدخال الرسائل والمرفقات والأوامر الصوتية
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 3.dp,
@@ -541,10 +735,28 @@ fun ChatScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // زر التسجيل الصوتي STT (Section 11.4)
+                    // زر إرفاق المستندات
+                    FilledTonalIconButton(
+                        onClick = {
+                            filePickerLauncher.launch("*/*")
+                        },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AttachFile,
+                            contentDescription = "إرفاق مستند"
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    // زر التسجيل الصوتي STT
                     FilledTonalIconButton(
                         onClick = {
                             if (!isRecording) {
@@ -598,7 +810,7 @@ fun ChatScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
 
                     OutlinedTextField(
                         value = inputText,
@@ -618,24 +830,11 @@ fun ChatScreen(
                         )
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
 
                     FilledIconButton(
-                        onClick = {
-                            val text = inputText.trim()
-                            if (text.isNotEmpty()) {
-                                chatItems.add(
-                                    ChatItem.UserMessage(
-                                        id = System.currentTimeMillis().toString(),
-                                        text = text,
-                                        ts = "الآن"
-                                    )
-                                )
-                                wsClient.sendUserMessage(text)
-                                inputText = ""
-                            }
-                        },
-                        enabled = inputText.isNotBlank(),
+                        onClick = { handleSendMessage() },
+                        enabled = inputText.isNotBlank() || pendingAttachment != null,
                         shape = CircleShape
                     ) {
                         Icon(

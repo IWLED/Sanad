@@ -35,14 +35,34 @@ async def route_incoming_ws_message(
 
 
 async def _handle_user_message(device_id: str, payload: dict[str, Any]) -> None:
-    """معالجة رسالة المستخدم النصية وتشغيل دورة الوكيل."""
+    """معالجة رسالة المستخدم النصية والمرفقات وتشغيل دورة الوكيل."""
     text = payload.get("text", "").strip()
-    if not text:
+    attachments = payload.get("attachments", [])
+
+    if not text and not attachments:
         await connection_manager.send_json(
             device_id,
-            make_envelope("error", {"code": "EMPTY_MESSAGE", "message": "Text cannot be empty"}),
+            make_envelope("error", {"code": "EMPTY_MESSAGE", "message": "Text or attachment cannot be empty"}),
         )
         return
+
+    full_message = text
+    if attachments:
+        attach_notes = []
+        for att in attachments:
+            fname = att.get("filename", "ملف")
+            fid = att.get("file_id", "")
+            ftext = att.get("extracted_text", "")
+            if ftext:
+                attach_notes.append(
+                    f"[مستند مرفق: {fname} (ID: {fid})]\n"
+                    f'<untrusted source="attachment" ref="{fid}">\n{ftext}\n</untrusted>'
+                )
+            else:
+                attach_notes.append(f"[مستند مرفق: {fname} (ID: {fid})]")
+        if attach_notes:
+            prefix = "\n\n".join(attach_notes)
+            full_message = f"{prefix}\n\nطلب المستخدم: {text}" if text else prefix
 
     async with async_session_factory() as session:
         try:

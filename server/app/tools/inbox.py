@@ -147,3 +147,96 @@ class GetEventTool(BaseTool):
                 "thread_key": ev.thread_key,
                 "reply_capable": bool(ev.reply_capable),
             }
+
+
+class GetRecentMessagesArgs(BaseModel):
+    limit: int = Field(default=10, ge=1, le=30, description="عدد الرسائل الأخيرة المطلوب استرجاعها")
+    source: str | None = Field(default=None, description="تصفية حسب المصدر مثل: sms أو notification أو call")
+    app_package: str | None = Field(default=None, description="تصفية حسب تطبيق محدد مثل: com.whatsapp أو com.samsung.android.messaging")
+
+
+class GetRecentMessagesTool(BaseTool):
+    """استرجاع أحدث الرسائل والإشعارات الواردة مرتبة من الأحدث للأقدم."""
+
+    name: str = "get_recent_messages"
+    description: str = "استرجاع أحدث الرسائل والإشعارات الواردة مرتبة زمنياً، لمعرفة آخر رسالة SMS أو إشعار واتساب أو أي تنبيه وصل للجهاز"
+    risk_tier: int = 1
+    executor: str = "server"
+    returns_untrusted: bool = True
+    args_model: type[BaseModel] = GetRecentMessagesArgs
+
+    async def run(self, args: BaseModel, ctx: dict[str, Any]) -> dict[str, Any]:
+        assert isinstance(args, GetRecentMessagesArgs)
+        async with async_session_factory() as session:
+            stmt = select(Event).order_by(Event.occurred_at.desc())
+            if args.source:
+                stmt = stmt.where(Event.source == args.source)
+            if args.app_package:
+                stmt = stmt.where(Event.app_package == args.app_package)
+            stmt = stmt.limit(args.limit)
+
+            res = await session.execute(stmt)
+            events = res.scalars().all()
+
+            results = []
+            for ev in events:
+                content_safe = wrap_untrusted(
+                    ev.content or "", source=ev.source or "event", ref=ev.id
+                )
+                results.append(
+                    {
+                        "event_id": ev.id,
+                        "source": ev.source,
+                        "app": ev.app_package,
+                        "sender": ev.sender_name,
+                        "title": ev.context_title,
+                        "content": content_safe,
+                        "occurred_at": ev.occurred_at,
+                        "thread_key": ev.thread_key,
+                        "reply_capable": bool(ev.reply_capable),
+                    }
+                )
+
+            return {"count": len(results), "messages": results}
+
+
+class ReadDocumentArgs(BaseModel):
+    file_id: str = Field(..., description="معرف الملف المراد قراءته (e.g. file_123456)")
+    max_chars: int = Field(default=6000, description="الحد الأقصى لعدد الأحرف المراد قراءتها")
+
+
+class ReadDocumentTool(BaseTool):
+    """قراءة محتوى ملف أو مستند تم رفعه من المستخدم لتحليله وتلخيصه."""
+
+    name: str = "read_document"
+    description: str = "قراءة محتوى ملف أو مستند نصي تم رفعه إلى السكرتير لتحليله والإجابة عن محتواه"
+    risk_tier: int = 1
+    executor: str = "server"
+    returns_untrusted: bool = True
+    args_model: type[BaseModel] = ReadDocumentArgs
+
+    async def run(self, args: BaseModel, ctx: dict[str, Any]) -> dict[str, Any]:
+        assert isinstance(args, ReadDocumentArgs)
+        import os
+        from app.db.models import File
+
+        async with async_session_factory() as session:
+            stmt = select(File).where(File.id == args.file_id)
+            res = await session.execute(stmt)
+            file_rec = res.scalar_one_or_none()
+            if not file_rec or not os.path.exists(file_rec.path):
+                return {"error": "الملف غير موجود على السيرفر"}
+
+            try:
+                with open(file_rec.path, "r", encoding="utf-8", errors="ignore") as f:
+                    text_content = f.read(args.max_chars)
+                safe_text = wrap_untrusted(text_content, source="file_upload", ref=file_rec.id)
+                return {
+                    "file_id": file_rec.id,
+                    "filename": os.path.basename(file_rec.path),
+                    "size_bytes": file_rec.size_bytes,
+                    "mime": file_rec.mime,
+                    "content": safe_text,
+                }
+            except Exception as e:
+                return {"error": f"تعذر قراءة محتوى الملف: {e}"}

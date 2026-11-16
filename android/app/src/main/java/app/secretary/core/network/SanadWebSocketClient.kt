@@ -201,10 +201,19 @@ class SanadWebSocketClient(
         sendEnvelope("hello", payload)
     }
 
-    fun sendUserMessage(text: String, clientMsgId: String = UUID.randomUUID().toString()) {
+    fun sendUserMessage(
+        text: String,
+        clientMsgId: String = UUID.randomUUID().toString(),
+        attachments: List<JSONObject> = emptyList()
+    ) {
         val payload = JSONObject().apply {
             put("client_msg_id", clientMsgId)
             put("text", text)
+            if (attachments.isNotEmpty()) {
+                val arr = JSONArray()
+                attachments.forEach { arr.put(it) }
+                put("attachments", arr)
+            }
         }
         sendEnvelope("user_message", payload)
     }

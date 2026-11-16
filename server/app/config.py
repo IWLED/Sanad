@@ -49,13 +49,14 @@ class Settings(BaseSettings):
     pepper: str = Field(default="sanad_default_pepper_for_test", alias="PEPPER")
 
     # المصادقة
-    access_token_ttl_min: int = Field(default=15, alias="ACCESS_TOKEN_TTL_MIN")
+    access_token_ttl_min: int = Field(default=43200, alias="ACCESS_TOKEN_TTL_MIN")
     pairing_code_ttl_min: int = Field(default=10, alias="PAIRING_CODE_TTL_MIN")
     cf_access_required: bool = Field(default=False, alias="CF_ACCESS_REQUIRED")
 
     # الاحتفاظ بالبيانات (R-21)
     retention_events_days: int = Field(default=30, alias="RETENTION_EVENTS_DAYS")
     retention_sensitive_days: int = Field(default=7, alias="RETENTION_SENSITIVE_DAYS")
+    files_ttl_days: int = Field(default=30, alias="FILES_TTL_DAYS")
 
     # LLM
     llm_profiles_file: Path = Field(

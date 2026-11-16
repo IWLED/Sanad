@@ -71,9 +71,16 @@ class ToolRegistry:
         self.register(MockT3Tool())
 
         # تسجيل أدوات صندوق الوارد والذاكرة والرد (المرحلة 2 و 3)
+        from app.tools.briefing import GetDailyBriefingTool
         from app.tools.calendar import CalendarCreateTool, CalendarListTool
         from app.tools.email import GmailCreateDraftTool, GmailSearchTool, GmailSendTool
-        from app.tools.inbox import GetEventTool, GetThreadTool, SearchInboxTool
+        from app.tools.inbox import (
+            GetEventTool,
+            GetRecentMessagesTool,
+            GetThreadTool,
+            ReadDocumentTool,
+            SearchInboxTool,
+        )
         from app.tools.memory import RememberTool, SearchMemoryTool
         from app.tools.office.tool import GenerateDocumentTool
         from app.tools.reminders import (
@@ -84,8 +91,11 @@ class ToolRegistry:
         from app.tools.reply import ProposeReplyTool
 
         self.register(SearchInboxTool())
+        self.register(GetRecentMessagesTool())
+        self.register(GetDailyBriefingTool())
         self.register(GetThreadTool())
         self.register(GetEventTool())
+        self.register(ReadDocumentTool())
         self.register(RememberTool())
         self.register(SearchMemoryTool())
         self.register(ProposeReplyTool())

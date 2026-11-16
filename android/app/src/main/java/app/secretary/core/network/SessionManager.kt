@@ -22,8 +22,22 @@ object SessionManager {
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
-        } catch (e: Exception) {
-            context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+        } catch (e: Throwable) {
+            try {
+                // في حال تلف المفاتيح أو إعادة التثبيت يتم محو التفضيلات القديمة وإعادة إنشائها
+                context.deleteSharedPreferences(PREFS_FILE)
+                val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+                EncryptedSharedPreferences.create(
+                    PREFS_FILE,
+                    masterKeyAlias,
+                    context,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (_: Throwable) {
+                // خيار احتياطي آمن تماماً يمنع انهيار التطبيق تحت أي ظرف
+                context.getSharedPreferences("sanad_fallback_prefs", Context.MODE_PRIVATE)
+            }
         }
     }
 

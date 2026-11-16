@@ -24,6 +24,16 @@ object ContactsSyncManager {
         .build()
 
     suspend fun syncDeviceContacts(context: Context): Result<Int> = withContext(Dispatchers.IO) {
+        val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.READ_CONTACTS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (!hasPermission) {
+            Log.d(TAG, "READ_CONTACTS permission not granted yet, skipping sync")
+            return@withContext Result.failure(SecurityException("إذن قراءة جهات الاتصال غير ممنوح بعد"))
+        }
+
         val token = SessionManager.getAccessToken(context)
         val serverUrl = SessionManager.getServerUrl(context)
 

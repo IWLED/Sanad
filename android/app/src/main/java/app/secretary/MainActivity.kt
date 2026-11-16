@@ -1,10 +1,18 @@
 package app.secretary
 
+import android.Manifest
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,7 +20,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QrCode
@@ -23,8 +33,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import app.secretary.contacts.ContactsSyncManager
@@ -34,15 +47,10 @@ import app.secretary.core.network.ServerWsEvent
 import app.secretary.core.network.SessionManager
 import app.secretary.gateway.RemoteInputGateway
 import app.secretary.outbox.OutboxSyncWorker
+import app.secretary.sensor.SmsSyncManager
 import app.secretary.ui.ChatScreen
 import app.secretary.ui.PoliciesScreen
 import app.secretary.ui.theme.SanadTheme
-import android.content.ClipboardManager
-import android.content.Context
-import android.graphics.BitmapFactory
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Image
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
@@ -59,84 +67,162 @@ class MainActivity : FragmentActivity() {
     private val keystoreManager by lazy { app.secretary.core.security.AndroidKeystoreManager() }
     private var activeWsClient by mutableStateOf<SanadWebSocketClient?>(null)
     private var execCommandsJob: Job? = null
+    private var isNotificationAccessGranted by mutableStateOf(false)
+
+    private val permissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val smsGranted = permissions[Manifest.permission.READ_SMS] == true ||
+                permissions[Manifest.permission.RECEIVE_SMS] == true
+        val contactsGranted = permissions[Manifest.permission.READ_CONTACTS] == true
+
+        if (smsGranted || contactsGranted) {
+            performFullSync()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // جدولة المزامنة الدورية لصندوق الوارد
-        OutboxSyncWorker.schedulePeriodicSync(this)
+        try {
+            // جدولة المزامنة الدورية لصندوق الوارد
+            OutboxSyncWorker.schedulePeriodicSync(this)
+        } catch (_: Throwable) {}
 
-        // اتصال تلقائي إذا كانت هناك جلسة مقترنة مسبقاً
-        if (SessionManager.hasSession(this)) {
-            connectWithSavedSession()
-        }
+        try {
+            // فحص صلاحية قراءة الإشعارات
+            checkNotificationAccess()
+        } catch (_: Throwable) {}
+
+        try {
+            // اتصال تلقائي إذا كانت هناك جلسة مقترنة مسبقاً
+            if (SessionManager.hasSession(this)) {
+                connectWithSavedSession()
+            }
+        } catch (_: Throwable) {}
 
         setContent {
-            SanadTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    var showPoliciesScreen by remember { mutableStateOf(false) }
-                    var showServerDetailsDialog by remember { mutableStateOf(false) }
-                    val wsClient = activeWsClient
+            // طلب الصلاحيات بأمان بعد اكتمال تهيئة واجهة المستخدم
+            LaunchedEffect(Unit) {
+                requestAppPermissions()
+            }
 
-                    if (wsClient != null) {
-                        ChatScreen(
-                            wsClient = wsClient,
-                            onBack = {
-                                showServerDetailsDialog = true
-                            },
-                            onOpenPolicies = {
-                                showPoliciesScreen = true
-                            },
-                            onSyncContacts = {
-                                performContactsSync()
-                            }
-                        )
+            // توحيد نسق الواجهة RTL باللغة العربية لكامل التطبيق
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                SanadTheme {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        var showPoliciesScreen by remember { mutableStateOf(false) }
+                        var showServerDetailsDialog by remember { mutableStateOf(false) }
+                        val wsClient = activeWsClient
 
-                        if (showServerDetailsDialog) {
-                            ServerInfoDialog(
-                                serverUrl = wsClient.serverUrl,
-                                onDismiss = { showServerDetailsDialog = false },
-                                onDisconnect = {
-                                    wsClient.disconnect()
-                                    execCommandsJob?.cancel()
-                                    activeWsClient = null
-                                    showServerDetailsDialog = false
+                        if (wsClient != null) {
+                            ChatScreen(
+                                wsClient = wsClient,
+                                onBack = {
+                                    showServerDetailsDialog = true
                                 },
-                                onUnpair = {
-                                    wsClient.disconnect()
-                                    execCommandsJob?.cancel()
-                                    activeWsClient = null
-                                    SessionManager.clearSession(this)
-                                    showServerDetailsDialog = false
-                                    Toast.makeText(this, "تم إلغاء اقتران الجهاز بنجاح", Toast.LENGTH_SHORT).show()
+                                onOpenPolicies = {
+                                    showPoliciesScreen = true
+                                },
+                                onSyncAll = {
+                                    performFullSync()
+                                },
+                                isNotificationAccessGranted = isNotificationAccessGranted,
+                                onOpenNotificationSettings = {
+                                    startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                                }
+                            )
+
+                            if (showServerDetailsDialog) {
+                                ServerInfoDialog(
+                                    serverUrl = wsClient.serverUrl,
+                                    onDismiss = { showServerDetailsDialog = false },
+                                    onDisconnect = {
+                                        wsClient.disconnect()
+                                        execCommandsJob?.cancel()
+                                        activeWsClient = null
+                                        showServerDetailsDialog = false
+                                    },
+                                    onUnpair = {
+                                        wsClient.disconnect()
+                                        execCommandsJob?.cancel()
+                                        activeWsClient = null
+                                        SessionManager.clearSession(this)
+                                        showServerDetailsDialog = false
+                                        Toast.makeText(this, "تم إلغاء اقتران الجهاز بنجاح", Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
+                        } else if (showPoliciesScreen) {
+                            val serverUrl = SessionManager.getServerUrl(this)
+                            val token = SessionManager.getAccessToken(this) ?: ""
+                            PoliciesScreen(
+                                serverUrl = serverUrl,
+                                token = token,
+                                onBack = { showPoliciesScreen = false }
+                            )
+                        } else {
+                            PairingScreen(
+                                savedServerUrl = SessionManager.getServerUrl(this),
+                                onPair = { serverUrl, code ->
+                                    performPairing(serverUrl, code)
+                                },
+                                onOpenSpikes = {
+                                    startActivity(Intent(this, SpikeActivity::class.java))
                                 }
                             )
                         }
-                    } else if (showPoliciesScreen) {
-                        val serverUrl = SessionManager.getServerUrl(this)
-                        val token = SessionManager.getAccessToken(this) ?: ""
-                        PoliciesScreen(
-                            serverUrl = serverUrl,
-                            token = token,
-                            onBack = { showPoliciesScreen = false }
-                        )
-                    } else {
-                        PairingScreen(
-                            savedServerUrl = SessionManager.getServerUrl(this),
-                            onPair = { serverUrl, code ->
-                                performPairing(serverUrl, code)
-                            },
-                            onOpenSpikes = {
-                                startActivity(Intent(this, SpikeActivity::class.java))
-                            }
-                        )
                     }
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        checkNotificationAccess()
+    }
+
+    private fun checkNotificationAccess() {
+        try {
+            val enabledListeners = androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(this)
+            isNotificationAccessGranted = enabledListeners.contains(packageName)
+        } catch (_: Throwable) {
+            try {
+                val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+                isNotificationAccessGranted = flat != null && flat.contains(packageName)
+            } catch (_: Throwable) {
+                isNotificationAccessGranted = false
+            }
+        }
+    }
+
+    private fun requestAppPermissions() {
+        try {
+            val needed = mutableListOf<String>()
+
+            val perms = arrayOf(
+                Manifest.permission.READ_SMS,
+                Manifest.permission.RECEIVE_SMS,
+                Manifest.permission.READ_CONTACTS,
+                Manifest.permission.POST_NOTIFICATIONS,
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.READ_PHONE_STATE
+            )
+
+            for (p in perms) {
+                if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED) {
+                    needed.add(p)
+                }
+            }
+
+            if (needed.isNotEmpty()) {
+                permissionsLauncher.launch(needed.toTypedArray())
+            }
+        } catch (_: Throwable) {}
     }
 
     private fun connectWithSavedSession() {
@@ -151,6 +237,9 @@ class MainActivity : FragmentActivity() {
         wsClient.connect()
         activeWsClient = wsClient
         listenForExecCommands(wsClient)
+
+        // مزامنة مبدئية عند استئناف الجلسة
+        performFullSync()
     }
 
     private fun performPairing(serverUrl: String, code: String) {
@@ -171,8 +260,8 @@ class MainActivity : FragmentActivity() {
                     refreshToken = session.refreshToken
                 )
 
-                // بدء مزامنة الأحداث فوراً
-                OutboxSyncWorker.enqueueImmediateSync(this@MainActivity)
+                // بدء مزامنة الأحداث والرسائل وجهات الاتصال فوراً
+                performFullSync()
 
                 val wsClient = SanadWebSocketClient(
                     serverUrl = serverUrl.trimEnd('/'),
@@ -192,7 +281,7 @@ class MainActivity : FragmentActivity() {
         execCommandsJob = lifecycleScope.launch {
             wsClient.events.collect { event ->
                 if (event is ServerWsEvent.ExecCommand) {
-                    if (event.kind == "send_notification_reply") {
+                    if (event.kind == "send_notification_reply" || event.kind == "propose_reply") {
                         val text = event.args.optString("text", "")
                         val key = event.args.optString("thread_key", "")
                         val success = RemoteInputGateway.sendReply(this@MainActivity, key, text)
@@ -208,14 +297,30 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    private fun performContactsSync() {
+    fun performFullSync() {
         lifecycleScope.launch {
-            Toast.makeText(this@MainActivity, "جارِ مزامنة جهات الاتصال مع الخادم...", Toast.LENGTH_SHORT).show()
-            val res = ContactsSyncManager.syncDeviceContacts(this@MainActivity)
-            res.onSuccess { count ->
-                Toast.makeText(this@MainActivity, "تمت مزامنة $count جهة اتصال بنجاح!", Toast.LENGTH_LONG).show()
-            }.onFailure { err ->
-                Toast.makeText(this@MainActivity, "فشلت المزامنة: ${err.message}", Toast.LENGTH_LONG).show()
+            try {
+                // 1. مزامنة جهات الاتصال
+                try {
+                    ContactsSyncManager.syncDeviceContacts(this@MainActivity)
+                } catch (_: Throwable) {}
+
+                // 2. مزامنة الرسائل النصية القصيرة (SMS Inbox)
+                try {
+                    val smsResult = SmsSyncManager.syncInboxSms(this@MainActivity, limit = 50)
+                    smsResult.onSuccess { count ->
+                        if (count > 0) {
+                            Toast.makeText(this@MainActivity, "تم تجهيز $count رسالة للمزامنة مع سند", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (_: Throwable) {}
+
+                // 3. إرسال الدفعة فوراً للخادم
+                try {
+                    OutboxSyncWorker.enqueueImmediateSync(this@MainActivity)
+                } catch (_: Throwable) {}
+            } catch (t: Throwable) {
+                Log.e("MainActivity", "FullSync error", t)
             }
         }
     }
@@ -271,10 +376,9 @@ fun PairingScreen(
         try {
             val options = GmsBarcodeScannerOptions.Builder()
                 .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                .enableAutoZoom()
                 .build()
             GmsBarcodeScanning.getClient(context, options)
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             null
         }
     }
@@ -299,34 +403,34 @@ fun PairingScreen(
                         Toast.makeText(context, "لم يتم العثور على رمز QR صالح في الصورة", Toast.LENGTH_LONG).show()
                     }
                 } else {
-                    Toast.makeText(context, "تعذر قراءة الصورة المختارة", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "تعذر قراءة ملف الصورة", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "تعذر فك شفرة الصورة: تأكد من وضوح رمز الـ QR", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "فشل فحص الصورة: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
                     Text(
-                        "سند",
+                        text = "سند — ربط الهاتف",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         }
-    ) { padding ->
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -349,16 +453,16 @@ fun PairingScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "السكرتير الشخصي الذكي",
+                text = "ربط الهاتف بسيرفر سند",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "اربط جهازك بخادمك المنزلي لبدء إدارة المواعيد، الإيجاز اليومي، والرسائل بأعلى درجات الخصوصية.",
+                text = "افتح صفحة السيرفر في المتصفح وصوّر رمز الباركود المعروض، أو أدخل رمز الاقتران يدوياً.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -366,209 +470,175 @@ fun PairingScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // بطاقة بيانات الاقتران
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.elevatedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+            // زر مسح الباركود بالكاميرا (الأساسي والموصى به)
+            Button(
+                onClick = {
+                    if (gmsScanner != null) {
+                        try {
+                            gmsScanner.startScan()
+                                .addOnSuccessListener { barcode ->
+                                    val raw = barcode.rawValue ?: barcode.displayValue
+                                    if (!raw.isNullOrBlank()) {
+                                        handleScannedPayload(raw)
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(context, "تعذر تشغيل الماسح: ${e.message}، يمكنك اختيار صورة الرمز من المعرض", Toast.LENGTH_LONG).show()
+                                }
+                        } catch (t: Throwable) {
+                            Toast.makeText(context, "خطأ في خدمات Google Play: ${t.message}، يرجى اختيار الصورة من الاستوديو", Toast.LENGTH_LONG).show()
+                            galleryPickerLauncher.launch("image/*")
+                        }
+                    } else {
+                        Toast.makeText(context, "الماسح السريع غير متاح على هذا الجهاز، يرجى اختيار صورة الرمز من المعرض", Toast.LENGTH_LONG).show()
+                        galleryPickerLauncher.launch("image/*")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = MaterialTheme.shapes.medium
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "طرق الاقتران السريع",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                Icon(
+                    imageVector = Icons.Default.QrCodeScanner,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "مسح رمز الباركود (QR) بالكاميرا",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                    // خيار المسح المباشر عبر الكاميرا (Google Code Scanner الآمن والمستقر تماماً)
-                    Button(
-                        onClick = {
-                            if (gmsScanner != null) {
-                                try {
-                                    gmsScanner.startScan()
-                                        .addOnSuccessListener { barcode ->
-                                            val raw = barcode.rawValue ?: barcode.displayValue ?: ""
-                                            if (raw.isNotBlank()) {
-                                                handleScannedPayload(raw)
-                                            }
-                                        }
-                                        .addOnCanceledListener {
-                                            // تم إلغاء المسح بأمان
-                                        }
-                                        .addOnFailureListener { error ->
-                                            Toast.makeText(context, "تعذر تشغيل الكاميرا التلقائية: ${error.localizedMessage ?: "حدث خطأ"}", Toast.LENGTH_LONG).show()
-                                        }
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "خطأ في تشغيل الكاميرا: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                                }
-                            } else {
-                                Toast.makeText(context, "خدمة المسح بالكاميرا غير متاحة، يرجى اختيار الصورة من المعرض أو الإدخال اليدوي", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        contentPadding = PaddingValues(vertical = 14.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "مسح رمز الـ QR من شاشة السيرفر",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+            // زر بديل لاختيار صورة الباركود من المعرض
+            OutlinedButton(
+                onClick = {
+                    galleryPickerLauncher.launch("image/*")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Image,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "اختيار صورة الباركود من الاستوديو",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-                    // خيار اختيار صورة الـ QR من معرض الصور كبديل مضمون 100%
-                    OutlinedButton(
-                        onClick = {
-                            try {
-                                galleryPickerLauncher.launch("image/*")
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "تعذر فتح المعرض: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        contentPadding = PaddingValues(vertical = 12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "أو اختيار صورة الـ QR من المعرض",
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        HorizontalDivider(modifier = Modifier.weight(1f))
-                        Text(
-                            text = "  أو الإدخال اليدوي للرمز  ",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        HorizontalDivider(modifier = Modifier.weight(1f))
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = serverUrl,
-                        onValueChange = { serverUrl = it },
-                        label = { Text("عنوان الخادم (Server URL)") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Dns,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    OutlinedTextField(
-                        value = pairingCode,
-                        onValueChange = { pairingCode = it },
-                        label = { Text("رمز الاقتران (Pairing Code)") },
-                        placeholder = { Text("أدخل الرمز الظاهر على السيرفر") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Key,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                val clip = clipboard?.primaryClip?.getItemAt(0)?.text?.toString()
-                                if (!clip.isNullOrBlank()) {
-                                    pairingCode = clip.trim().replace(" ", "").replace("-", "").uppercase()
-                                    Toast.makeText(context, "تم لصق الرمز من الحافظة!", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(context, "الحافظة فارغة", Toast.LENGTH_SHORT).show()
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.ContentPaste,
-                                    contentDescription = "لصق من الحافظة",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Button(
-                        onClick = {
-                            val cleanCode = pairingCode.trim().replace(" ", "").replace("-", "").uppercase()
-                            if (serverUrl.isNotBlank() && cleanCode.isNotBlank()) {
-                                onPair(serverUrl.trim(), cleanCode)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = serverUrl.isNotBlank() && pairingCode.isNotBlank(),
-                        shape = MaterialTheme.shapes.medium,
-                        contentPadding = PaddingValues(vertical = 12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Link,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "ربط واقتران بالخادم",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+            // فاصل أو إدخال يدوي
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HorizontalDivider(modifier = Modifier.weight(1f))
+                Text(
+                    text = " أو الإدخال اليدوي ",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // قسم الخيارات المتقدمة (QR Code / Spikes)
-            TextButton(
-                onClick = { showAdvancedOptions = !showAdvancedOptions },
-                shape = MaterialTheme.shapes.small
+            // حقل عنوان السيرفر
+            OutlinedTextField(
+                value = serverUrl,
+                onValueChange = { serverUrl = it },
+                label = { Text("عنوان الخادم (Server URL)") },
+                placeholder = { Text("http://192.168.100.28:8000") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Dns,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // حقل رمز الاقتران
+            OutlinedTextField(
+                value = pairingCode,
+                onValueChange = { pairingCode = it.uppercase() },
+                label = { Text("رمز الاقتران (16 حرفاً أو رقماً)") },
+                placeholder = { Text("مثال: 4A8B9C1D2E3F4051") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Key,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = clipboard.primaryClip
+                        if (clip != null && clip.itemCount > 0) {
+                            val pasted = clip.getItemAt(0).text?.toString() ?: ""
+                            handleScannedPayload(pasted)
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.ContentPaste,
+                            contentDescription = "لصق من الحافظة",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            FilledTonalButton(
+                onClick = {
+                    if (serverUrl.isBlank() || pairingCode.isBlank()) {
+                        Toast.makeText(context, "يرجى إدخال عنوان السيرفر ورمز الاقتران", Toast.LENGTH_SHORT).show()
+                    } else {
+                        onPair(serverUrl, pairingCode)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = MaterialTheme.shapes.medium,
+                enabled = serverUrl.isNotBlank() && pairingCode.isNotBlank()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Build,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
+                Icon(imageVector = Icons.Default.Link, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (showAdvancedOptions) "إخفاء الخيارات الإضافية" else "خيارات متقدمة (QR / فحص)",
-                    style = MaterialTheme.typography.labelMedium
+                    text = "إتمام الاقتران وحفظ الجلسة",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            TextButton(onClick = { showAdvancedOptions = !showAdvancedOptions }) {
+                Text(
+                    text = if (showAdvancedOptions) "إخفاء الخيارات المتقدمة ▲" else "خيارات متقدمة ولصق كود QR يدوي ▼",
+                    style = MaterialTheme.typography.labelLarge
                 )
             }
 
@@ -576,59 +646,33 @@ fun PairingScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 10.dp)
+                        .padding(top = 12.dp)
                 ) {
-                    OutlinedCard(
+                    OutlinedTextField(
+                        value = rawQrInput,
+                        onValueChange = {
+                            rawQrInput = it
+                            if (it.contains("code") || it.length > 20) {
+                                handleScannedPayload(it)
+                            }
+                        },
+                        label = { Text("لصق محتوى رمز QR المباشر (JSON)") },
+                        placeholder = { Text("{\"server_url\":\"...\",\"code\":\"...\"}") },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                        )
+                        maxLines = 3,
+                        shape = MaterialTheme.shapes.small
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = onOpenSpikes,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.QrCode,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "لصق حمولة QR كاملة (اختياري)",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            OutlinedTextField(
-                                value = rawQrInput,
-                                onValueChange = { input ->
-                                    rawQrInput = input
-                                    try {
-                                        val json = JSONObject(input.trim())
-                                        if (json.has("server_url")) serverUrl = json.getString("server_url")
-                                        if (json.has("code")) pairingCode = json.getString("code")
-                                    } catch (_: Exception) {}
-                                },
-                                placeholder = { Text("{\"server_url\": \"...\", \"code\": \"...\"}") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.small,
-                                maxLines = 2
-                            )
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            OutlinedButton(
-                                onClick = onOpenSpikes,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text("أداة القياس الميداني (Spikes)", style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
+                        Icon(imageVector = Icons.Default.Build, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("لوحة القياس والتجارب الميدانية (Spikes)")
                     }
                 }
             }
@@ -636,9 +680,6 @@ fun PairingScreen(
     }
 }
 
-/**
- * حوار عرض معلومات الخادم وخيارات إلغاء الاقتران أو فصل الجلسة.
- */
 @Composable
 fun ServerInfoDialog(
     serverUrl: String,
@@ -649,51 +690,48 @@ fun ServerInfoDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                "معلومات خادم سند",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = "معلومات اتصال السيرفر", fontWeight = FontWeight.Bold)
         },
         text = {
             Column {
+                Text(text = "أنت مقترن حالياً بالخادم المنزلي:", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = serverUrl,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(14.dp))
                 Text(
-                    text = "الخادم المتصل حالياً:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = serverUrl,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "يمكنك قطع الاتصال المؤقت بالجلسة أو إلغاء اقتران الهاتف بالكامل لإعادة ربطه مع خادم آخر.",
+                    text = "• قطع الاتصال: يوقف اتصال الـ WebSocket المؤقت.\n• إلغاء الاقتران: يحذف الجلسة المفاتيح ويتطلب مسح رمز باركود جديد.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
         confirmButton = {
-            Button(
-                onClick = onDisconnect,
-                shape = MaterialTheme.shapes.small
-            ) {
-                Text("فصل الجلسة")
+            TextButton(onClick = onDismiss) {
+                Text("إغلاق")
             }
         },
         dismissButton = {
-            TextButton(
-                onClick = onUnpair,
-                shape = MaterialTheme.shapes.small,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("إلغاء الاقتران")
+            Row {
+                TextButton(onClick = onDisconnect) {
+                    Text("قطع الاتصال")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                TextButton(
+                    onClick = onUnpair,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("إلغاء الاقتران")
+                }
             }
         }
     )
