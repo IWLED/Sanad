@@ -25,7 +25,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
 """
 
 
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(autouse=True)
 async def setup_test_db() -> AsyncGenerator[None, None]:
     """التأكد من إنشاء كافة جداول قاعدة البيانات وجداول FTS5 قبل بدء تشغيل الاختبارات."""
     async with engine.begin() as conn:
