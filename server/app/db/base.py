@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 
 from app.config import settings
 
@@ -38,11 +39,12 @@ def create_engine_and_session(
     url = database_url or settings.database_url
     ensure_db_dir_exists(url)
 
-    # إعداد المحرك
+    # إعداد المحرك مع NullPool لـ SQLite لتجنب ربط الاتصالات بحلقات أحداث مغلقة
     engine = create_async_engine(
         url,
         echo=False,
         future=True,
+        poolclass=NullPool,
     )
 
     # تفعيل خيارات SQLite الإلزامية في Section 5.1 و 7.1

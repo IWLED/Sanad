@@ -6,10 +6,12 @@ import json
 import secrets
 from datetime import UTC, datetime
 
-from app.core.audit import verify_audit_chain
+from sqlalchemy import update
+
+from app.core.audit import append_audit_log, verify_audit_chain
 from app.core.crypto import hash_with_pepper
 from app.db.base import async_session_factory
-from app.db.models import PairingCode, Setting
+from app.db.models import Action, Device, PairingCode, Setting
 
 
 async def cli_pair_create(ttl_minutes: int, server_url: str) -> None:
@@ -61,17 +63,42 @@ async def cli_audit_verify() -> None:
 
 
 async def cli_emergency_kill() -> None:
-    """إيقاف طارئ للوكيل وإلغاء صلاحيات التشغيل R-17."""
+    """إيقاف طارئ للوكيل وإلغاء صلاحيات التشغيل والأجهزة R-17."""
     now_iso = datetime.now(UTC).isoformat()
     async with async_session_factory() as session:
+        # 1. تسجيل الإيقاف الطارئ في الإعدادات
         setting = Setting(
             key="agent_emergency_killed",
             value_json=json.dumps({"killed": True, "killed_at": now_iso}),
             updated_at=now_iso,
         )
         await session.merge(setting)
+
+        # 2. إلغاء جميع الإجراءات المعلقة
+        stmt_actions = (
+            update(Action)
+            .where(Action.status == "PENDING_APPROVAL")
+            .values(status="CANCELLED", decided_at=now_iso)
+        )
+        await session.execute(stmt_actions)
+
+        # 3. إلغاء تفعيل كافة الأجهزة المتصلة
+        stmt_devices = (
+            update(Device)
+            .where(Device.revoked_at.is_(None))
+            .values(revoked_at=now_iso)
+        )
+        await session.execute(stmt_devices)
+
+        # 4. توثيق الحدث في سجل التدقيق
+        await append_audit_log(
+            session=session,
+            actor="cli:admin",
+            event="emergency_kill_triggered",
+            details={"killed_at": now_iso},
+        )
         await session.commit()
-    print("🛑 تم تفعيل الإيقاف الطارئ بنجاح. تم تعليق تنفيذ الوكيل وإبطال العمليات.")
+    print("🛑 تم تفعيل الإيقاف الطارئ بنجاح. تم تعليق تنفيذ الوكيل وإبطال العمليات والأجهزة.")
 
 
 def main() -> None:

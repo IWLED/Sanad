@@ -3,6 +3,8 @@
 سجل تدقيق متسلسل التجزئة (hash-chained) لكل فعل/قرار/انتقال حالة.
 """
 
+from collections.abc import AsyncGenerator
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -11,7 +13,7 @@ from app.db.base import Base
 
 
 @pytest.fixture
-async def memory_db_session() -> AsyncSession:
+async def memory_db_session() -> AsyncGenerator[AsyncSession, None]:
     """قاعدة بيانات SQLite في الذاكرة للاختبارات السريعة والمستقلة."""
     test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     async with test_engine.begin() as conn:

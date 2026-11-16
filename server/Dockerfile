@@ -28,6 +28,7 @@ RUN groupadd -g 10001 secretary && \
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/app /app/app
 COPY alembic.ini /app/
+COPY alembic /app/alembic/
 COPY config /app/config/
 
 ENV PATH="/app/.venv/bin:$PATH"
