@@ -182,6 +182,14 @@ async def get_web_models() -> dict[str, Any]:
 
     presets = [
         {
+            "id": "omniroute",
+            "name": "OmniRoute (الوسيط الموحد على سيرفرك)",
+            "base_url": "http://192.168.100.28:20128/v1",
+            "reasoner_model": "gpt-4o",
+            "fast_model": "gpt-4o-mini",
+            "requires_key": True,
+        },
+        {
             "id": "openrouter",
             "name": "OpenRouter (Claude 3.5 Sonnet / DeepSeek / GPT-4o)",
             "base_url": "https://openrouter.ai/api/v1",

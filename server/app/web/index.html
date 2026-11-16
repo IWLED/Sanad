@@ -3,1154 +3,817 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سند (Sanad) — السكرتير الشخصي الذكي</title>
-    <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/open-webui.png">
+    <title>سند — السكرتير الشخصي الذكي</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Material Design 3 Design Tokens (Light & Dark) */
         :root {
-            /* درجات السمة الداكنة التنفيذية الرسمية */
-            --bg-base: #0B0F19;
-            --bg-surface: #141C2E;
-            --bg-surface-elevated: #1B263E;
-            --bg-surface-card: rgba(27, 38, 62, 0.7);
-            --bg-subtle: #24324D;
-            --border-color: rgba(255, 255, 255, 0.08);
-            --border-color-focus: #3B82F6;
-            --text-primary: #F8FAFC;
-            --text-secondary: #94A3B8;
-            --text-muted: #64748B;
-            --accent-primary: #3B82F6;
-            --accent-primary-hover: #2563EB;
-            --accent-primary-container: rgba(59, 130, 246, 0.15);
-            --color-success: #10B981;
-            --color-success-bg: rgba(16, 185, 129, 0.12);
-            --color-warning: #F59E0B;
-            --color-warning-bg: rgba(245, 158, 11, 0.12);
-            --color-error: #EF4444;
-            --radius-sm: 8px;
-            --radius-md: 14px;
-            --radius-lg: 20px;
-            --radius-full: 9999px;
-            --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
-            --font-family: 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+            --md-sys-font: 'Cairo', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            
+            /* الوضع الداكن الافتراضي (M3 Dark Theme) */
+            --md-sys-color-surface: #0F172A;
+            --md-sys-color-surface-container-low: #1E293B;
+            --md-sys-color-surface-container: #24324D;
+            --md-sys-color-surface-container-high: #334155;
+            --md-sys-color-surface-variant: #1E293B;
+            --md-sys-color-outline: rgba(255, 255, 255, 0.12);
+            --md-sys-color-outline-variant: rgba(255, 255, 255, 0.06);
+            
+            --md-sys-color-primary: #38BDF8;
+            --md-sys-color-on-primary: #082F49;
+            --md-sys-color-primary-container: rgba(56, 189, 248, 0.15);
+            --md-sys-color-on-primary-container: #BAE6FD;
+            
+            --md-sys-color-text-primary: #F8FAFC;
+            --md-sys-color-text-secondary: #94A3B8;
+            --md-sys-color-text-tertiary: #64748B;
+            
+            --md-sys-color-success: #34D399;
+            --md-sys-color-error: #F87171;
+            
+            --md-sys-shape-corner-xs: 4px;
+            --md-sys-shape-corner-sm: 8px;
+            --md-sys-shape-corner-md: 12px;
+            --md-sys-shape-corner-lg: 16px;
+            --md-sys-shape-corner-xl: 24px;
+            --md-sys-shape-corner-full: 9999px;
+            
+            --md-sys-elevation-1: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.12);
+            --md-sys-elevation-2: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -2px rgba(0,0,0,0.2);
         }
 
         [data-theme="light"] {
-            /* درجات السمة الفاتحة الهادئة */
-            --bg-base: #F8FAFC;
-            --bg-surface: #FFFFFF;
-            --bg-surface-elevated: #F1F5F9;
-            --bg-surface-card: #FFFFFF;
-            --bg-subtle: #E2E8F0;
-            --border-color: #E2E8F0;
-            --border-color-focus: #2563EB;
-            --text-primary: #0F172A;
-            --text-secondary: #475569;
-            --text-muted: #94A3B8;
-            --accent-primary: #1E3A5F;
-            --accent-primary-hover: #0D2847;
-            --accent-primary-container: #D6E3F8;
-            --color-success: #059669;
-            --color-success-bg: #ECFDF5;
-            --color-warning: #D97706;
-            --color-warning-bg: #FFFBEB;
-            --color-error: #DC2626;
-            --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.06);
+            --md-sys-color-surface: #F8FAFC;
+            --md-sys-color-surface-container-low: #FFFFFF;
+            --md-sys-color-surface-container: #F1F5F9;
+            --md-sys-color-surface-container-high: #E2E8F0;
+            --md-sys-color-surface-variant: #F1F5F9;
+            --md-sys-color-outline: rgba(0, 0, 0, 0.12);
+            --md-sys-color-outline-variant: rgba(0, 0, 0, 0.06);
+            
+            --md-sys-color-primary: #0284C7;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #E0F2FE;
+            --md-sys-color-on-primary-container: #0369A1;
+            
+            --md-sys-color-text-primary: #0F172A;
+            --md-sys-color-text-secondary: #475569;
+            --md-sys-color-text-tertiary: #94A3B8;
+            
+            --md-sys-color-success: #059669;
+            --md-sys-color-error: #DC2626;
+            
+            --md-sys-elevation-1: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --md-sys-elevation-2: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: var(--font-family);
+            font-family: var(--md-sys-font);
             -webkit-font-smoothing: antialiased;
         }
 
         body {
-            background-color: var(--bg-base);
-            color: var(--text-primary);
-            line-height: 1.6;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* رأس الصفحة التنفيذي الموحد */
-        header.top-nav {
-            background: var(--bg-surface);
-            border-bottom: 1px solid var(--border-color);
-            padding: 14px 32px;
+        /* شريط التطبيق العلوي (M3 Top App Bar) */
+        .app-bar {
+            height: 64px;
+            background-color: var(--md-sys-color-surface-container-low);
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 0 24px;
             position: sticky;
             top: 0;
-            z-index: 50;
-            backdrop-filter: blur(16px);
+            z-index: 100;
         }
 
-        .brand-box {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .brand-badge {
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius-md);
-            background: linear-gradient(135deg, #1E3A5F 0%, #2B4C7E 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #FFFFFF;
-            font-size: 20px;
-            font-weight: 800;
-            box-shadow: 0 2px 8px rgba(30, 58, 95, 0.4);
-        }
-
-        .brand-info h1 {
-            font-size: 1.25rem;
-            font-weight: 800;
-            letter-spacing: -0.3px;
-            color: var(--text-primary);
-        }
-
-        .brand-info p {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .nav-actions {
+        .brand-section {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .hub-pill {
-            display: inline-flex;
+        .brand-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--md-sys-shape-corner-md);
+            background: linear-gradient(135deg, #0284C7, #38BDF8);
+            color: #FFFFFF;
+            display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 14px;
-            border-radius: var(--radius-full);
-            background: var(--color-success-bg);
-            color: var(--color-success);
-            font-size: 0.82rem;
-            font-weight: 700;
-            border: 1px solid rgba(16, 185, 129, 0.2);
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
         }
 
-        .live-dot {
+        .brand-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+
+        .app-bar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chip-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: var(--md-sys-shape-corner-full);
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .chip-status .dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: var(--color-success);
-            box-shadow: 0 0 10px var(--color-success);
+            background-color: var(--md-sys-color-success);
         }
 
-        .btn-theme-toggle {
-            background: var(--bg-surface-elevated);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
+        .btn-icon {
             width: 38px;
             height: 38px;
-            border-radius: var(--radius-sm);
+            border-radius: var(--md-sys-shape-corner-full);
+            border: 1px solid var(--md-sys-color-outline);
+            background: transparent;
+            color: var(--md-sys-color-text-primary);
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
             transition: all 0.2s;
         }
 
-        .btn-theme-toggle:hover {
-            color: var(--text-primary);
-            border-color: var(--text-muted);
+        .btn-icon:hover {
+            background-color: var(--md-sys-color-surface-container);
         }
 
-        .btn-api-docs {
+        .btn-apk-download {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--md-sys-shape-corner-full);
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 7px 16px;
-            border-radius: var(--radius-sm);
-            background: var(--bg-surface-elevated);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
+            transition: transform 0.15s, opacity 0.15s;
         }
 
-        .btn-api-docs:hover {
-            color: var(--text-primary);
-            border-color: var(--text-muted);
+        .btn-apk-download:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
         }
 
-        /* المحتوى الرئيسي */
-        main.main-wrapper {
-            max-width: 1180px;
-            margin: 28px auto;
-            padding: 0 24px;
+        /* حاوية المحتوى الرئيسية */
+        .container {
+            max-width: 1040px;
             width: 100%;
+            margin: 0 auto;
+            padding: 24px 20px 48px;
             flex: 1;
         }
 
-        /* شريط التبويبات التنفيذي */
-        .tabs-header {
+        /* تبويبات التنقل العلوية (M3 Segmented Navigation Tabs) */
+        .nav-tabs {
             display: flex;
-            gap: 6px;
-            background: var(--bg-surface);
-            padding: 6px;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            margin-bottom: 24px;
-            overflow-x: auto;
-        }
-
-        .tab-item {
-            flex: 1;
-            min-width: 180px;
-            padding: 10px 18px;
-            background: transparent;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-size: 0.92rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             gap: 8px;
-            white-space: nowrap;
+            margin-bottom: 24px;
+            padding: 4px;
+            background-color: var(--md-sys-color-surface-container-low);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-full);
+            width: fit-content;
         }
 
-        .tab-item:hover {
-            color: var(--text-primary);
+        .tab-btn {
+            padding: 8px 18px;
+            border-radius: var(--md-sys-shape-corner-full);
+            border: none;
+            background: transparent;
+            color: var(--md-sys-color-text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .tab-item.active {
-            background: var(--accent-primary);
-            color: #FFFFFF;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        .tab-btn.active {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
         }
 
-        /* الأقسام التفاعلية */
-        .tab-content {
+        .tab-btn:hover:not(.active) {
+            color: var(--md-sys-color-text-primary);
+            background-color: var(--md-sys-color-surface-container);
+        }
+
+        .tab-pane {
             display: none;
+            animation: fadeIn 0.2s ease-out;
         }
 
-        .tab-content.active {
+        .tab-pane.active {
             display: block;
-            animation: slideUp 0.25s ease;
         }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(6px); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* البطاقات المتطورة */
-        .panel-card {
-            background: var(--bg-surface-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 28px;
-            margin-bottom: 24px;
-            box-shadow: var(--shadow-card);
-            backdrop-filter: blur(8px);
-        }
-
-        .panel-header {
+        /* بطاقات M3 القياسية (M3 Elevated Cards) */
+        .card {
+            background-color: var(--md-sys-color-surface-container-low);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-xl);
+            padding: 24px;
+            box-shadow: var(--md-sys-elevation-1);
             margin-bottom: 20px;
         }
 
-        .panel-title {
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: var(--text-primary);
+        .card-header {
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 6px;
+            color: var(--md-sys-color-text-primary);
         }
 
-        .panel-desc {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: var(--md-sys-color-text-secondary);
+            margin-top: 4px;
         }
 
-        /* شبكة الإحصائيات الذكية */
-        .stats-row {
+        /* رقائق القوالب السريعة (M3 Filter Chips) */
+        .chips-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .chip-filter {
+            padding: 7px 16px;
+            border-radius: var(--md-sys-shape-corner-full);
+            border: 1px solid var(--md-sys-color-outline);
+            background-color: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-text-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chip-filter.featured {
+            border-color: var(--md-sys-color-primary);
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            font-weight: 700;
+        }
+
+        .chip-filter:hover {
+            border-color: var(--md-sys-color-primary);
+            transform: translateY(-1px);
+        }
+
+        /* شبكة الحقول والنماذج المدمجة */
+        .models-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 18px;
+            margin-bottom: 20px;
         }
 
-        .metric-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
+        .model-box {
+            background-color: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-lg);
             padding: 20px;
             display: flex;
-            align-items: center;
-            gap: 16px;
-            box-shadow: var(--shadow-card);
-        }
-
-        .metric-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: var(--radius-md);
-            background: var(--accent-primary-container);
-            color: var(--accent-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        [data-theme="dark"] .metric-icon {
-            color: #60A5FA;
-        }
-
-        .metric-data .metric-value {
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            line-height: 1.2;
-        }
-
-        .metric-data .metric-label {
-            font-size: 0.82rem;
-            color: var(--text-secondary);
-            font-weight: 600;
-            margin-top: 2px;
-        }
-
-        /* منطقة الاقتران ورمز QR التنفيذي */
-        .pairing-container {
-            display: grid;
-            grid-template-columns: 1.1fr 1fr;
-            gap: 28px;
-            align-items: center;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 32px;
-            box-shadow: var(--shadow-card);
-        }
-
-        @media (max-width: 860px) {
-            .pairing-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .guide-steps {
-            display: flex;
             flex-direction: column;
-            gap: 16px;
-        }
-
-        .step-item {
-            display: flex;
-            align-items: flex-start;
             gap: 14px;
         }
 
-        .step-num {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: var(--accent-primary);
-            color: #FFFFFF;
+        .model-box-header {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            font-weight: 800;
-            flex-shrink: 0;
+            justify-content: space-between;
         }
 
-        .step-text h4 {
+        .model-box-name {
             font-size: 0.95rem;
             font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 2px;
-        }
-
-        .step-text p {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        /* بطاقة عرض الكود */
-        .code-vault {
-            background: var(--bg-surface-elevated);
-            border: 2px dashed var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 24px;
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .segmented-code {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            align-items: center;
             gap: 8px;
-            margin: 14px 0;
-            direction: ltr;
         }
 
-        .code-chunk {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            padding: 8px 12px;
-            font-family: monospace;
-            font-size: 1.4rem;
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: var(--accent-primary);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        .tag-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: var(--md-sys-shape-corner-full);
+            background-color: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-text-secondary);
         }
 
-        [data-theme="dark"] .code-chunk {
-            color: #93C5FD;
-            background: #0F172A;
-            border-color: #334155;
-        }
-
-        .qr-hero-card {
-            background: #FFFFFF;
-            border: 2px solid #E2E8F0;
-            border-radius: var(--radius-lg);
-            padding: 24px;
+        /* حقول الإدخال (M3 Text Fields) */
+        .field-group {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            gap: 5px;
         }
 
-        .qr-placeholder {
-            min-height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .field-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--md-sys-color-text-secondary);
         }
 
-        /* الأزرار التنفيذية */
-        .btn-exec-primary {
-            background: var(--accent-primary);
-            color: #FFFFFF;
-            border: none;
-            padding: 14px 28px;
-            border-radius: var(--radius-md);
-            font-size: 0.95rem;
+        .text-input {
+            width: 100%;
+            height: 42px;
+            padding: 0 14px;
+            border-radius: var(--md-sys-shape-corner-sm);
+            border: 1px solid var(--md-sys-color-outline);
+            background-color: var(--md-sys-color-surface-container-low);
+            color: var(--md-sys-color-text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .text-input:focus {
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+        }
+
+        /* الأزرار التنفيذية (M3 Buttons) */
+        .btn-filled {
+            height: 42px;
+            padding: 0 20px;
+            border-radius: var(--md-sys-shape-corner-full);
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            font-size: 0.9rem;
             font-weight: 700;
+            border: none;
             cursor: pointer;
-            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
+            gap: 8px;
+            transition: all 0.15s;
         }
 
-        .btn-exec-primary:hover {
+        .btn-filled:hover {
             opacity: 0.94;
             transform: translateY(-1px);
         }
 
-        .btn-exec-secondary {
-            background: var(--bg-surface-elevated);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            padding: 10px 20px;
-            border-radius: var(--radius-sm);
-            font-size: 0.9rem;
-            font-weight: 700;
+        .btn-tonal {
+            height: 38px;
+            padding: 0 16px;
+            border-radius: var(--md-sys-shape-corner-full);
+            background-color: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-text-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: none;
             cursor: pointer;
-            transition: all 0.2s;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s;
         }
 
-        .btn-exec-secondary:hover {
-            background: var(--bg-subtle);
+        .btn-tonal:hover {
+            background-color: var(--md-sys-color-outline);
         }
 
-        /* المحادثة الفورية مع سند */
-        .web-chat-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
+        .test-feedback {
+            font-size: 0.8rem;
+            padding: 8px 12px;
+            border-radius: var(--md-sys-shape-corner-sm);
+            display: none;
+            line-height: 1.4;
+        }
+
+        /* نافذة المحادثة المباشرة (M3 Chat) */
+        .chat-box {
+            background-color: var(--md-sys-color-surface-container-low);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-xl);
             display: flex;
             flex-direction: column;
-            height: 540px;
+            height: 520px;
             overflow: hidden;
-            box-shadow: var(--shadow-card);
         }
 
-        .chat-stream {
+        .chat-messages {
             flex: 1;
-            padding: 24px;
+            padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
         }
 
-        .chat-bubble {
-            max-width: 72%;
-            padding: 14px 20px;
-            border-radius: var(--radius-lg);
-            font-size: 0.95rem;
-            line-height: 1.6;
+        .bubble {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: var(--md-sys-shape-corner-lg);
+            font-size: 0.92rem;
+            line-height: 1.5;
         }
 
         .bubble-user {
             align-self: flex-start;
-            background: var(--accent-primary);
-            color: #FFFFFF;
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
             border-bottom-right-radius: 4px;
         }
 
         .bubble-bot {
             align-self: flex-end;
-            background: var(--bg-surface-elevated);
-            color: var(--text-primary);
+            background-color: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-text-primary);
             border-bottom-left-radius: 4px;
-            border: 1px solid var(--border-color);
         }
 
-        .chat-footer {
-            padding: 16px 20px;
-            background: var(--bg-surface-elevated);
-            border-top: 1px solid var(--border-color);
+        .chat-bar {
+            padding: 14px 18px;
+            background-color: var(--md-sys-color-surface-container);
+            border-top: 1px solid var(--md-sys-color-outline-variant);
             display: flex;
-            gap: 12px;
+            gap: 10px;
         }
 
-        .chat-input-field {
-            flex: 1;
-            padding: 12px 20px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-full);
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            outline: none;
+        /* بطاقة الاقتران المدمجة (M3 Pairing Layout) */
+        .pairing-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 24px;
+            align-items: center;
         }
 
-        .chat-input-field:focus {
-            border-color: var(--border-color-focus);
+        @media (max-width: 768px) {
+            .pairing-grid {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
         }
 
-        /* الجداول الأنيقة */
-        .table-responsive {
-            overflow-x: auto;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
+        .code-display {
+            display: flex;
+            gap: 8px;
+            margin: 14px 0;
+            direction: ltr;
         }
 
-        table.exec-table {
+        .code-segment {
+            background-color: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-primary);
+            font-family: 'Inter', monospace;
+            font-size: 1.25rem;
+            font-weight: 800;
+            padding: 8px 12px;
+            border-radius: var(--md-sys-shape-corner-sm);
+            letter-spacing: 2px;
+        }
+
+        .qr-card {
+            background: #FFFFFF;
+            padding: 16px;
+            border-radius: var(--md-sys-shape-corner-lg);
+            box-shadow: var(--md-sys-elevation-2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: fit-content;
+        }
+
+        /* جدول الأجهزة */
+        table.simple-table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 0.88rem;
             text-align: right;
-            font-size: 0.9rem;
         }
 
-        table.exec-table th {
-            background: var(--bg-surface-elevated);
-            color: var(--text-secondary);
-            font-weight: 700;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border-color);
+        table.simple-table th {
+            padding: 12px 16px;
+            color: var(--md-sys-color-text-secondary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
         }
 
-        table.exec-table td {
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-
-        footer.system-footer {
-            text-align: center;
-            padding: 24px;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            border-top: 1px solid var(--border-color);
-            background: var(--bg-surface);
+        table.simple-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
         }
     </style>
 </head>
 <body>
 
-    <header class="top-nav">
-        <div class="brand-box">
-            <div class="brand-badge">سـ</div>
-            <div class="brand-info">
-                <h1>سند (Sanad)</h1>
-                <p>السكرتير الشخصي الذكي — لوحة التحكم المركزية</p>
-            </div>
+    <!-- شريط التطبيق العلوي -->
+    <header class="app-bar">
+        <div class="brand-section">
+            <div class="brand-avatar">سـ</div>
+            <div class="brand-title">سند</div>
+            <span class="chip-status">
+                <span class="dot"></span>
+                <span>الخادم نشط</span>
+            </span>
         </div>
 
-        <div class="nav-actions">
-            <div class="hub-pill">
-                <span class="live-dot"></span>
-                <span>متصل بالخادم المنزلي (ZimaOS Hub)</span>
-            </div>
-
-            <a href="/download/app" download="Sanad-v0.1.0.apk" class="btn-exec-secondary" style="text-decoration: none; font-size: 0.85rem; padding: 6px 14px; background: var(--accent-primary); color: #fff;">
-                📥 تحميل APK الجوال
+        <div class="app-bar-actions">
+            <a href="/download/app" download="Sanad-v0.1.0.apk" class="btn-apk-download">
+                <span>📱 تحميل APK</span>
             </a>
-
-            <button class="btn-theme-toggle" onclick="toggleTheme()" title="تبديل المظهر الليلي/النهاري">
-                🌓
-            </button>
-
-            <a href="/docs" target="_blank" class="btn-api-docs">
-                <span>توثيق الـ API</span>
-                <span style="font-size: 11px;">↗</span>
-            </a>
+            <button class="btn-icon" onclick="toggleTheme()" title="تبديل المظهر">🌓</button>
         </div>
     </header>
 
-    <main class="main-wrapper">
-        <!-- شريط الإحصائيات الذكية السريعة -->
-        <div class="stats-row">
-            <div class="metric-card">
-                <div class="metric-icon">📱</div>
-                <div class="metric-data">
-                    <div class="metric-value" id="count-devices">-</div>
-                    <div class="metric-label">الأجهزة المقترنة المصرحة</div>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-icon">🛡️</div>
-                <div class="metric-data">
-                    <div class="metric-value" id="count-policies">-</div>
-                    <div class="metric-label">التطبيقات المراقبة والردود</div>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-icon">📥</div>
-                <div class="metric-data">
-                    <div class="metric-value" id="count-events">-</div>
-                    <div class="metric-label">أحداث الرسائل والمزامنة</div>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-icon">🔒</div>
-                <div class="metric-data">
-                    <div class="metric-value" style="color: var(--color-success);" id="count-audit">سليم</div>
-                    <div class="metric-label">سجل التدقيق المشفر (R-16)</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- التبويبات التنفيذية -->
-        <nav class="tabs-header">
-            <button class="tab-item active" onclick="activateTab('pairing')">
-                <span>📷 ربط الهاتف عبر QR</span>
+    <main class="container">
+        <!-- شريط التبويبات الرئيسي -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" onclick="activateTab('models')">
+                <span>⚡ النماذج و OmniRoute</span>
             </button>
-            <button class="tab-item" onclick="activateTab('models')">
-                <span>⚙️ إعداد نماذج السكرتير (LLM)</span>
+            <button class="tab-btn" onclick="activateTab('chat')">
+                <span>💬 المحادثة المباشرة</span>
             </button>
-            <button class="tab-item" onclick="activateTab('chat')">
-                <span>💬 محادثة سند المباشرة</span>
+            <button class="tab-btn" onclick="activateTab('pairing')">
+                <span>📷 ربط الهاتف (QR)</span>
             </button>
-            <button class="tab-item" onclick="activateTab('devices')">
-                <span>📋 إدارة الأجهزة المقترنة</span>
-            </button>
-            <button class="tab-item" onclick="activateTab('security')">
-                <span>🛡️ قواعد الخصوصية والأمان</span>
+            <button class="tab-btn" onclick="activateTab('devices')">
+                <span>📋 الأجهزة المقترنة</span>
             </button>
         </nav>
 
-        <!-- تبويب الاقتران ورمز QR التفاعلي -->
-        <section id="section-pairing" class="tab-content active">
-            <div class="panel-card" style="padding: 32px;">
-                <div style="background: var(--bg-surface-elevated); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: var(--radius-md); padding: 18px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-                    <div style="display: flex; align-items: center; gap: 14px;">
-                        <span style="font-size: 32px;">📱</span>
-                        <div>
-                            <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-primary);">نسخة تطبيق الجوال المحدثة (Sanad Android APK)</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">النسخة المحدثة بميزة الماسح الضوئي QR بالكاميرا والاتصال المحلي الآمن (حجم: 68 ميجابايت).</div>
-                        </div>
-                    </div>
-                    <a href="/download/app" download="Sanad-v0.1.0.apk" class="btn-exec-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
-                        <span>📥 تحميل تطبيق الجوال مباشرة (APK)</span>
-                    </a>
+        <!-- تبويب النماذج و OmniRoute (الأساس) -->
+        <section id="pane-models" class="tab-pane active">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">إعداد نماذج الذكاء الاصطناعي</h2>
+                    <p class="card-subtitle">حدد الوسيط أو النماذج المشغلة للسكرتير. اختر من القوالب الجاهزة أو ضع بيانات سيرفرك.</p>
                 </div>
 
-                <div class="panel-header">
-                    <div class="panel-title">
-                        <span>📱 ربط واقتران تطبيق الجوال بالخادم</span>
-                    </div>
-                    <div class="panel-desc">
-                        قم بتوليد رمز أمان جديد ومسحه بكاميرا هاتفك من داخل تطبيق سند ليتم تبادل المفاتيح والتشفير محلياً وفورياً.
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 24px;">
-                    <button class="btn-exec-primary" onclick="requestNewPairingCode()">
-                        <span>⚡ توليد رمز اقتران جديد الآن</span>
+                <!-- خيارات سريعة: في مقدمتها OmniRoute المعتمد -->
+                <div class="chips-row">
+                    <button class="chip-filter featured" onclick="applyPreset('omniroute')">
+                        ✨ OmniRoute (سيرفرك - Port 20128)
+                    </button>
+                    <button class="chip-filter" onclick="applyPreset('openrouter')">
+                        🤖 OpenRouter
+                    </button>
+                    <button class="chip-filter" onclick="applyPreset('openai')">
+                        ⚡ OpenAI
+                    </button>
+                    <button class="chip-filter" onclick="applyPreset('gemini')">
+                        💎 Gemini
+                    </button>
+                    <button class="chip-filter" onclick="applyPreset('ollama')">
+                        🏠 Ollama (محلي)
                     </button>
                 </div>
 
-                <div id="pairing-active-area" style="display: none;" class="pairing-container">
-                    <div class="guide-steps">
-                        <div class="step-item">
-                            <div class="step-num">1</div>
-                            <div class="step-text">
-                                <h4>افتح تطبيق سند على هاتفك الأندرويد</h4>
-                                <p>ثبّت التطبيق وافتحه، ستجد في الشاشة الأولى خيار "مسح رمز الـ QR".</p>
-                            </div>
+                <div class="models-grid">
+                    <!-- نموذج التفكير الرئيسي -->
+                    <div class="model-box">
+                        <div class="model-box-header">
+                            <span class="model-box-name">🧠 النموذج الرئيسي (Reasoner)</span>
+                            <span class="tag-badge">العقل الأساسي</span>
                         </div>
 
-                        <div class="step-item">
-                            <div class="step-num">2</div>
-                            <div class="step-text">
-                                <h4>وجّه كاميرا الهاتف نحو رمز الـ QR المقابل</h4>
-                                <p>سيقوم التطبيق بالتقاط عنوان السيرفر والرمز المشفر تلقائياً دون أي كتابة يدوية.</p>
-                            </div>
+                        <div class="field-group">
+                            <label class="field-label">عنوان الـ API (Base URL):</label>
+                            <input type="text" id="model-reasoner-url" class="text-input" placeholder="http://192.168.100.28:20128/v1">
                         </div>
 
-                        <div class="step-item">
-                            <div class="step-num">3</div>
-                            <div class="step-text">
-                                <h4>أو انسخ الرمز المكون من مقاطع بالأسفل</h4>
-                                <p>إذا فضّلت الإدخال اليدوي، يمكنك نسخ الرمز المنسق أدناه ولصقه في التطبيق.</p>
-                            </div>
+                        <div class="field-group">
+                            <label class="field-label">معرف النموذج (Model ID):</label>
+                            <input type="text" id="model-reasoner-id" class="text-input" placeholder="gpt-4o">
                         </div>
 
-                        <div class="code-vault">
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 700;">رمز الاقتران المنسق (Pairing Code):</div>
-                            <div class="segmented-code" id="segmented-code-display">
-                                <span class="code-chunk">----</span>
-                                <span class="code-chunk">----</span>
-                                <span class="code-chunk">----</span>
-                                <span class="code-chunk">----</span>
-                            </div>
-                            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 14px;">
-                                <button class="btn-exec-secondary" onclick="copyPairingCode()">📋 نسخ الرمز</button>
-                            </div>
+                        <div class="field-group">
+                            <label class="field-label">مفتاح الـ API (Key):</label>
+                            <input type="password" id="model-reasoner-key" class="text-input" placeholder="أدخل مفتاح OmniRoute أو اتركه فارغاً">
                         </div>
+
+                        <button class="btn-tonal" onclick="testSingleModel('reasoner')">
+                            🧪 فحص الاتصال بالنموذج
+                        </button>
+                        <div id="feedback-reasoner" class="test-feedback"></div>
                     </div>
 
-                    <div class="qr-hero-card">
-                        <div style="color: #0F172A; font-weight: 800; font-size: 1.05rem; margin-bottom: 16px;">
-                            امسح الرمز بكاميرا تطبيق سند
+                    <!-- نموذج التلخيص السريع -->
+                    <div class="model-box">
+                        <div class="model-box-header">
+                            <span class="model-box-name">⚡ النموذج السريع (Fast Summarizer)</span>
+                            <span class="tag-badge">التلخيص والتصنيف</span>
                         </div>
-                        <div class="qr-placeholder" id="qr-target-box"></div>
-                        <div style="color: #64748B; font-size: 0.82rem; margin-top: 14px; text-align: center;">
-                            صلاحية الرمز: 10 دقائق من وقت التوليد
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- تبويب إعداد نماذج الذكاء الاصطناعي للسكرتير -->
-        <section id="section-models" class="tab-content">
-            <div class="panel-card" style="padding: 32px;">
-                <div class="panel-header">
-                    <div class="panel-title">
-                        <span>⚙️ إعداد نماذج الذكاء الاصطناعي (AI Models & Providers)</span>
-                    </div>
-                    <div class="panel-desc">
-                        قم بتحديد مزودات ونماذج الذكاء الاصطناعي التي تدير عقل السكرتير سند (Section 10.1 في Plan.md). يدعم سند كافة النماذج السحابية (OpenAI, Claude, Gemini, DeepSeek) والنماذج المحلية المستضافة ذاتياً (Ollama, vLLM) لحفظ الخصوصية 100%.
+                        <div class="field-group">
+                            <label class="field-label">عنوان الـ API (Base URL):</label>
+                            <input type="text" id="model-fast-url" class="text-input" placeholder="http://192.168.100.28:20128/v1">
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label">معرف النموذج (Model ID):</label>
+                            <input type="text" id="model-fast-id" class="text-input" placeholder="gpt-4o-mini">
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label">مفتاح الـ API (Key):</label>
+                            <input type="password" id="model-fast-key" class="text-input" placeholder="اتركه فارغاً للاعتماد على المفتاح الأول">
+                        </div>
+
+                        <button class="btn-tonal" onclick="testSingleModel('fast')">
+                            🧪 فحص الاتصال بالنموذج
+                        </button>
+                        <div id="feedback-fast" class="test-feedback"></div>
                     </div>
                 </div>
 
-                <!-- أزرار القوالب الجاهزة السريعة -->
-                <div style="margin-bottom: 24px;">
-                    <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">
-                        ⚡ اختيار سريع من النماذج الشائعة (Quick Presets):
-                    </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn-exec-secondary" onclick="applyPreset('openrouter')">
-                            🤖 OpenRouter (Claude 3.5 Sonnet)
-                        </button>
-                        <button class="btn-exec-secondary" onclick="applyPreset('openai')">
-                            ⚡ OpenAI (GPT-4o)
-                        </button>
-                        <button class="btn-exec-secondary" onclick="applyPreset('gemini')">
-                            💎 Google Gemini (1.5 Pro)
-                        </button>
-                        <button class="btn-exec-secondary" onclick="applyPreset('ollama')">
-                            🏠 Ollama محلي (Qwen 2.5 - خصوصية تامة)
-                        </button>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-bottom: 28px;">
-                    <!-- 1. نموذج السكرتير الرئيسي Reasoner -->
-                    <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 22px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                            <h4 style="margin: 0; font-size: 1.05rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                                <span>🧠 النموذج الرئيسي (Reasoner Agent)</span>
-                            </h4>
-                            <span style="font-size: 0.75rem; background: var(--accent-primary-container); color: var(--accent-primary); padding: 3px 8px; border-radius: 4px; font-weight: 700;">Model A</span>
-                        </div>
-                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px;">
-                            المسؤول عن التفكير، المحادثة، اتخاذ القرارات، وصياغة الردود واستدعاء الأدوات.
-                        </p>
-
-                        <div style="margin-bottom: 12px;">
-                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">عنوان الخادم (Base URL):</label>
-                            <input type="text" id="model-reasoner-url" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="https://openrouter.ai/api/v1">
-                        </div>
-
-                        <div style="margin-bottom: 12px;">
-                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">اسم / معرف النموذج (Model ID):</label>
-                            <input type="text" id="model-reasoner-id" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="anthropic/claude-3.5-sonnet">
-                        </div>
-
-                        <div style="margin-bottom: 16px;">
-                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">مفتاح الـ API (API Key):</label>
-                            <input type="password" id="model-reasoner-key" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="sk-...">
-                        </div>
-
-                        <button class="btn-exec-secondary" style="width: 100%; justify-content: center;" onclick="testSingleModel('reasoner')">
-                            🧪 فحص استجابة النموذج الرئيسي
-                        </button>
-                        <div id="test-result-reasoner" style="margin-top: 10px; font-size: 0.82rem; display: none;"></div>
-                    </div>
-
-                    <!-- 2. النموذج السريع Fast Summarizer -->
-                    <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 22px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                            <h4 style="margin: 0; font-size: 1.05rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                                <span>⚡ النموذج السريع (Fast Classifier & Digest)</span>
-                            </h4>
-                            <span style="font-size: 0.75rem; background: var(--bg-surface-elevated); color: var(--text-secondary); padding: 3px 8px; border-radius: 4px; font-weight: 700;">Model B</span>
-                        </div>
-                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px;">
-                            المسؤول عن تلخيص المحادثات الطويلة بسرعة وتصنيف أولوية الإشعارات الواردة.
-                        </p>
-
-                        <div style="margin-bottom: 12px;">
-                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">عنوان الخادم (Base URL):</label>
-                            <input type="text" id="model-fast-url" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="https://api.openai.com/v1">
-                        </div>
-
-                        <div style="margin-bottom: 12px;">
-                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">اسم / معرف النموذج (Model ID):</label>
-                            <input type="text" id="model-fast-id" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="gpt-4o-mini">
-                        </div>
-
-                        <div style="margin-bottom: 16px;">
-                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">مفتاح الـ API (API Key):</label>
-                            <input type="password" id="model-fast-key" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="اتركه فارغاً لاستخدام مفتاح النموذج الرئيسي">
-                        </div>
-
-                        <button class="btn-exec-secondary" style="width: 100%; justify-content: center;" onclick="testSingleModel('fast')">
-                            🧪 فحص استجابة النموذج السريع
-                        </button>
-                        <div id="test-result-fast" style="margin-top: 10px; font-size: 0.82rem; display: none;"></div>
-                    </div>
-                </div>
-
-                <!-- إعدادات الخصوصية والسياسات -->
-                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 22px; margin-bottom: 24px;">
-                    <h4 style="margin: 0 0 14px 0; font-size: 1rem; color: var(--text-primary);">🛡️ سياسات الأمان والميزانية اليومية (Security Policies)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; cursor: pointer;">
-                            <input type="checkbox" id="policy-forbid-free" checked>
-                            <span>حظر المزودات والطبقات المجانية لضمان عدم تدريب النماذج على بياناتك الشخصية (R-19).</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; cursor: pointer;">
-                            <input type="checkbox" id="policy-allow-cloud-sensitive">
-                            <span>السماح بمعالجة البيانات المصنفة حساسة عبر السحابة (غير موصى به، الافتراضي حظر السحابة R-08).</span>
-                        </label>
-                        <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
-                            <span style="font-size: 0.88rem; color: var(--text-secondary);">الميزانية اليومية للتوكنز (Daily Token Budget):</span>
-                            <input type="number" id="policy-budget" class="chat-input-field" style="width: 180px; padding: 6px 12px; border-radius: 4px;" value="2000000">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- شريط الحفظ النهائي -->
-                <div style="display: flex; gap: 14px; align-items: center;">
-                    <button class="btn-exec-primary" onclick="saveModelsConfig()">
-                        <span>💾 حفظ الإعدادات وتطبيقها على السكرتير فوراً</span>
+                <div style="display: flex; gap: 14px; align-items: center; margin-top: 10px;">
+                    <button class="btn-filled" onclick="saveModelsConfig()">
+                        <span>💾 حفظ وتطبيق الإعدادات</span>
                     </button>
-                    <span id="save-status-msg" style="font-size: 0.9rem; font-weight: 700;"></span>
+                    <span id="save-status-msg" style="font-size: 0.85rem; font-weight: 700;"></span>
                 </div>
             </div>
         </section>
 
-        <!-- تبويب محادثة سند المباشرة -->
-        <section id="section-chat" class="tab-content">
-            <div class="web-chat-card">
-                <div class="chat-stream" id="chat-messages-stream">
-                    <div class="chat-bubble bubble-bot">
-                        أهلاً بك! أنا <strong>سند</strong> سكرتيرك الشخصي الذكي. يمكنك سؤالي عن جدول أعمالك، طلب تلخيص الرسائل، أو إنشاء مستندات Word وجداول Excel وعروض تقديمية مباشرة من المتصفح.
+        <!-- تبويب المحادثة المباشرة -->
+        <section id="pane-chat" class="tab-pane">
+            <div class="chat-box">
+                <div class="chat-messages" id="chat-stream">
+                    <div class="bubble bubble-bot">
+                        أهلاً بك! أنا <strong>سند</strong> سكرتيرك الشخصي الذكي. أنا متصل وجاهز للمساعدة وإدارة جدول أعمالك وملخصاتك.
                     </div>
                 </div>
 
-                <div class="chat-footer">
-                    <input type="text" class="chat-input-field" id="chat-query-input" placeholder="اكتب استفسارك أو طلبك لسند واضغط Enter..." onkeydown="handleChatSubmit(event)">
-                    <button class="btn-exec-primary" onclick="submitChatMessage()">إرسال</button>
+                <div class="chat-bar">
+                    <input type="text" id="chat-input" class="text-input" style="border-radius: var(--md-sys-shape-corner-full);" placeholder="اكتب طلبك أو سؤالك لسند..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+                    <button class="btn-filled" onclick="sendChatMessage()">إرسال</button>
                 </div>
             </div>
         </section>
 
-        <!-- تبويب الأجهزة المقترنة -->
-        <section id="section-devices" class="tab-content">
-            <div class="panel-card">
-                <div class="panel-header">
-                    <div class="panel-title">📱 الأجهزة المصرح لها بالاتصال عبر Android Keystore</div>
-                    <div class="panel-desc">يتم التحقق من كل جهاز عبر مفتاح غير متناظر P-256 مشفر عتادياً.</div>
+        <!-- تبويب الاقتران -->
+        <section id="pane-pairing" class="tab-pane">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📱 ربط تطبيق الجوال</h2>
+                    <p class="card-subtitle">امسح رمز الـ QR من تطبيق سند على هاتفك لربط الجهاز فورياً وبأعلى درجات التشفير.</p>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="exec-table">
+                <div class="pairing-grid">
+                    <div>
+                        <div style="font-size: 0.88rem; color: var(--md-sys-color-text-secondary); margin-bottom: 6px;">رمز الاقتران الحالي:</div>
+                        <div class="code-display" id="segmented-code-display">
+                            <span class="code-segment">----</span>
+                            <span class="code-segment">----</span>
+                            <span class="code-segment">----</span>
+                            <span class="code-segment">----</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 14px;">
+                            <button class="btn-tonal" onclick="copyPairingCode()">📋 نسخ الرمز</button>
+                            <button class="btn-tonal" onclick="requestNewPairingCode()">⚡ توليد رمز جديد</button>
+                        </div>
+                    </div>
+
+                    <div class="qr-card">
+                        <div id="qr-target-box" style="width: 180px; height: 180px; display: flex; align-items: center; justify-content: center;"></div>
+                        <span style="font-size: 0.75rem; color: #64748B; margin-top: 8px;">صالح لمدة 10 دقائق</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- تبويب الأجهزة -->
+        <section id="pane-devices" class="tab-pane">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">الأجهزة المقترنة المصرحة</h2>
+                    <p class="card-subtitle">قائمة الهواتف المتصلة بسيرفر سند عبر مفاتيح Android Keystore الموثقة.</p>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="simple-table">
                         <thead>
                             <tr>
                                 <th>اسم الجهاز</th>
-                                <th>المعرف الرقمي</th>
-                                <th>إصدار التطبيق</th>
-                                <th>تاريخ الاقتران</th>
-                                <th>آخر نشاط</th>
+                                <th>المعرف</th>
+                                <th>الإصدار</th>
+                                <th>تاريخ الربط</th>
                             </tr>
                         </thead>
                         <tbody id="devices-listing-body">
-                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">جارِ جلب الأجهزة...</td></tr>
+                            <tr><td colspan="4" style="text-align: center; color: var(--md-sys-color-text-tertiary); padding: 20px;">جارِ التحميل...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </section>
-
-        <!-- تبويب الخصوصية والأمان -->
-        <section id="section-security" class="tab-content">
-            <div class="panel-card">
-                <div class="panel-header">
-                    <div class="panel-title">🔒 سلامة المنظومة ومطابقة القواعد الأمنية (R-01 إلى R-22)</div>
-                    <div class="panel-desc">تقرير التدقيق الأمني الآلي للخادم المنزلي.</div>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <div style="padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>🛡️ R-01: الاعتماد البشري الإلزامي (HITL)</strong>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">لا يتم تنفيذ أي رد خارجي أو إرسال بريد دون إذنك الصريح.</div>
-                        </div>
-                        <span style="color: var(--color-success); font-weight: 700;">مفعل ومحمي</span>
-                    </div>
-
-                    <div style="padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>🔐 R-15: تشفير البيانات الحساسة عبر AES-256-GCM</strong>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">رموز المصادقة وتوكينات الحسابات مشفرة بمفتاح فريد محلياً.</div>
-                        </div>
-                        <span style="color: var(--color-success); font-weight: 700;">مفعل ومحمي</span>
-                    </div>
-
-                    <div style="padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>📜 R-16: سلسلة التدقيق المتسلسلة (Cryptographic Audit Trail)</strong>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">سجل غير قابل للتلاعب يربط كل عملية بـ SHA-256 السابقة.</div>
-                        </div>
-                        <span style="color: var(--color-success); font-weight: 700;" id="sec-audit-badge">سليم ومتحقق</span>
-                    </div>
-
-                    <div style="padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>🚫 R-08 & R-19: حظر المزودات المجانية وحماية البيانات السرية</strong>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">حظر إرسال أرقام الهواتف أو كلمات المرور لأي نموذج خارجي.</div>
-                        </div>
-                        <span style="color: var(--color-success); font-weight: 700;">مفعل ومحمي</span>
-                    </div>
-                </div>
-            </div>
-        </section>
     </main>
 
-    <footer class="system-footer">
-        سند (Sanad) — السكرتير الشخصي الذكي • يعمل عبر بيئة الخادم المنزلي ZimaOS
-    </footer>
-
-    <!-- مكتبة QR Code خفيفة وموثوقة -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script>
         let currentPairingCodeRaw = "";
+        let activePresets = [];
 
         function toggleTheme() {
             const html = document.documentElement;
-            const current = html.getAttribute('data-theme');
-            const target = current === 'dark' ? 'light' : 'dark';
+            const target = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', target);
             localStorage.setItem('sanad_theme', target);
         }
 
-        // استعادة السمة المحفوظة
         (function initTheme() {
             const saved = localStorage.getItem('sanad_theme') || 'dark';
             document.documentElement.setAttribute('data-theme', saved);
         })();
 
         function activateTab(tabId) {
-            document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 
-            const targetBtn = Array.from(document.querySelectorAll('.tab-item')).find(b => b.getAttribute('onclick').includes(tabId));
+            const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
             if (targetBtn) targetBtn.classList.add('active');
 
-            const targetSection = document.getElementById('section-' + tabId);
-            if (targetSection) targetSection.classList.add('active');
+            const targetPane = document.getElementById('pane-' + tabId);
+            if (targetPane) targetPane.classList.add('active');
 
             if (tabId === 'devices') refreshDevicesList();
             if (tabId === 'models') loadModelsSettings();
         }
-
-        async function fetchSystemStats() {
-            try {
-                const res = await fetch('/v1/web/stats');
-                if (res.ok) {
-                    const data = await res.json();
-                    document.getElementById('count-devices').innerText = data.devices_count;
-                    document.getElementById('count-policies').innerText = data.policies_count;
-                    document.getElementById('count-events').innerText = data.events_count;
-                    document.getElementById('count-audit').innerText = data.audit_chain_valid ? 'سليم' : 'تنبيه';
-                    document.getElementById('sec-audit-badge').innerText = data.audit_chain_valid ? 'سليم ومتحقق' : 'تحذير';
-                }
-            } catch (err) {
-                console.warn('Stats error:', err);
-            }
-        }
-
-        async function requestNewPairingCode() {
-            try {
-                const res = await fetch('/v1/web/pairing-code', { method: 'POST' });
-                if (res.ok) {
-                    const data = await res.json();
-                    currentPairingCodeRaw = data.code;
-
-                    // تقسيم الرمز لمقاطع رباعية سهلة القراءة
-                    const chunks = data.code.match(/.{1,4}/g) || [data.code];
-                    const segmentedDisplay = document.getElementById('segmented-code-display');
-                    segmentedDisplay.innerHTML = chunks.map(c => `<span class="code-chunk">${c}</span>`).join('');
-
-                    document.getElementById('pairing-active-area').style.display = 'grid';
-
-                    // إنشاء حمولة QR تتضمن رابط الخادم الحالي وكود الاقتران
-                    const serverUrl = window.location.origin;
-                    const qrPayload = JSON.stringify({ server_url: serverUrl, code: data.code });
-
-                    const qrBox = document.getElementById('qr-target-box');
-                    qrBox.innerHTML = '';
-                    if (typeof QRCode !== 'undefined') {
-                        new QRCode(qrBox, {
-                            text: qrPayload,
-                            width: 200,
-                            height: 200,
-                            colorDark : "#0F172A",
-                            colorLight : "#FFFFFF",
-                            correctLevel : QRCode.CorrectLevel.M
-                        });
-                    } else {
-                        qrBox.innerText = qrPayload;
-                    }
-
-                    // التمرير السلس لمنطقة الـ QR
-                    document.getElementById('pairing-active-area').scrollIntoView({ behavior: 'smooth' });
-                }
-            } catch (err) {
-                alert('فشل توليد رمز الاقتران: ' + err.message);
-            }
-        }
-
-        function copyPairingCode() {
-            if (!currentPairingCodeRaw) return;
-            navigator.clipboard.writeText(currentPairingCodeRaw).then(() => {
-                alert('تم نسخ رمز الاقتران بنجاح!');
-            });
-        }
-
-        async function refreshDevicesList() {
-            try {
-                const res = await fetch('/v1/web/devices');
-                if (res.ok) {
-                    const devices = await res.json();
-                    const tbody = document.getElementById('devices-listing-body');
-                    if (devices.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">لا توجد أجهزة مقترنة حتى الآن. امسح رمز الـ QR من هاتفك لربطه.</td></tr>';
-                    } else {
-                        tbody.innerHTML = devices.map(d => `
-                            <tr>
-                                <td><strong>${d.name || 'هاتف أندرويد'}</strong></td>
-                                <td><code>${d.id}</code></td>
-                                <td>${d.app_version || '1.0.0'}</td>
-                                <td>${new Date(d.created_at).toLocaleString('ar-SA')}</td>
-                                <td>${new Date(d.last_seen_at).toLocaleString('ar-SA')}</td>
-                            </tr>
-                        `).join('');
-                    }
-                }
-            } catch (err) {
-                console.warn(err);
-            }
-        }
-
-        function handleChatSubmit(e) {
-            if (e.key === 'Enter') submitChatMessage();
-        }
-
-        let activeModelsConfig = null;
-        let activePresets = [];
 
         async function loadModelsSettings() {
             try {
                 const res = await fetch('/v1/web/models');
                 if (res.ok) {
                     const data = await res.json();
-                    activeModelsConfig = data.config;
-                    activePresets = data.presets;
+                    activePresets = data.presets || [];
+                    const cfg = data.config;
 
-                    const reasoner = activeModelsConfig?.profiles?.reasoner?.chain?.[0] || {};
-                    document.getElementById('model-reasoner-url').value = reasoner.base_url || 'https://openrouter.ai/api/v1';
-                    document.getElementById('model-reasoner-id').value = reasoner.model || 'anthropic/claude-3.5-sonnet';
+                    const reasoner = cfg?.profiles?.reasoner?.chain?.[0] || {};
+                    document.getElementById('model-reasoner-url').value = reasoner.base_url || 'http://192.168.100.28:20128/v1';
+                    document.getElementById('model-reasoner-id').value = reasoner.model || 'gpt-4o';
                     if (reasoner.api_key_masked) {
-                        document.getElementById('model-reasoner-key').placeholder = 'محفوظ حالياً (' + reasoner.api_key_masked + ')';
+                        document.getElementById('model-reasoner-key').placeholder = 'محفوظ (' + reasoner.api_key_masked + ')';
                     }
 
-                    const fast = activeModelsConfig?.profiles?.fast?.chain?.[0] || {};
-                    document.getElementById('model-fast-url').value = fast.base_url || 'https://api.openai.com/v1';
+                    const fast = cfg?.profiles?.fast?.chain?.[0] || {};
+                    document.getElementById('model-fast-url').value = fast.base_url || 'http://192.168.100.28:20128/v1';
                     document.getElementById('model-fast-id').value = fast.model || 'gpt-4o-mini';
                     if (fast.api_key_masked) {
-                        document.getElementById('model-fast-key').placeholder = 'محفوظ حالياً (' + fast.api_key_masked + ')';
+                        document.getElementById('model-fast-key').placeholder = 'محفوظ (' + fast.api_key_masked + ')';
                     }
-
-                    const policy = activeModelsConfig?.policy || {};
-                    document.getElementById('policy-forbid-free').checked = policy.forbid_free_tier !== false;
-                    document.getElementById('policy-allow-cloud-sensitive').checked = !!policy.allow_cloud_for_sensitive;
-                    document.getElementById('policy-budget').value = policy.daily_token_budget || 2000000;
                 }
             } catch (err) {
-                console.warn('Failed to load models:', err);
+                console.warn('Error loading models:', err);
             }
         }
 
@@ -1163,56 +826,53 @@
             document.getElementById('model-fast-url').value = p.base_url;
             document.getElementById('model-fast-id').value = p.fast_model;
 
-            if (!p.requires_key) {
+            if (presetId === 'omniroute') {
+                document.getElementById('model-reasoner-key').placeholder = 'أدخل مفتاح OmniRoute الخاص بسيرفرك';
+            } else if (!p.requires_key) {
                 document.getElementById('model-reasoner-key').value = '';
-                document.getElementById('model-reasoner-key').placeholder = 'لا يتطلب مفتاح API (محلي)';
-                document.getElementById('model-fast-key').value = '';
-                document.getElementById('model-fast-key').placeholder = 'لا يتطلب مفتاح API (محلي)';
+                document.getElementById('model-reasoner-key').placeholder = 'لا يتطلب مفتاح API';
             } else {
-                document.getElementById('model-reasoner-key').placeholder = 'أدخل مفتاح API الخاص بك';
-                document.getElementById('model-fast-key').placeholder = 'اتركه فارغاً لاستخدام نفس المفتاح أعلاه';
+                document.getElementById('model-reasoner-key').placeholder = 'أدخل مفتاح الـ API';
             }
-            alert('تم تطبيق قالب ' + p.name + ' على الحقول بنجاح! تذكر كتابة مفتاح API إن وُجد ثم اضغط حفظ الإعدادات.');
         }
 
         async function testSingleModel(profile) {
-            const resultBox = document.getElementById('test-result-' + profile);
-            resultBox.style.display = 'block';
-            resultBox.style.color = 'var(--text-secondary)';
-            resultBox.innerText = '⏳ جارِ الاتصال بالنموذج وفحص الاستجابة...';
+            const box = document.getElementById('feedback-' + profile);
+            box.style.display = 'block';
+            box.style.backgroundColor = 'var(--md-sys-color-surface-container-high)';
+            box.style.color = 'var(--md-sys-color-text-secondary)';
+            box.innerText = '⏳ جارِ فحص الاتصال بالنموذج...';
 
-            const urlInput = document.getElementById('model-' + profile + '-url').value.trim();
-            const idInput = document.getElementById('model-' + profile + '-id').value.trim();
-            const keyInput = document.getElementById('model-' + profile + '-key').value.trim();
+            const url = document.getElementById('model-' + profile + '-url').value.trim();
+            const id = document.getElementById('model-' + profile + '-id').value.trim();
+            const key = document.getElementById('model-' + profile + '-key').value.trim();
 
             try {
                 const res = await fetch('/v1/web/models/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        base_url: urlInput,
-                        model: idInput,
-                        api_key: keyInput || undefined,
-                        timeout_s: 20
-                    })
+                    body: JSON.stringify({ base_url: url, model: id, api_key: key || undefined, timeout_s: 15 })
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    resultBox.style.color = 'var(--color-success)';
-                    resultBox.innerHTML = `✅ <strong>نجح الاتصال بالنموذج!</strong> (زمن الاستجابة: ${data.latency_ms}ms)<br>الرد التجريبي: "${data.sample_response}"`;
+                    box.style.backgroundColor = 'rgba(52, 211, 153, 0.15)';
+                    box.style.color = 'var(--md-sys-color-success)';
+                    box.innerHTML = `✅ <strong>متصل بنجاح!</strong> (استجابة: ${data.latency_ms}ms)<br>رد النموذج: "${data.sample_response}"`;
                 } else {
-                    resultBox.style.color = '#EF4444';
-                    resultBox.innerHTML = `❌ <strong>فشل الاتصال:</strong> ${data.error}`;
+                    box.style.backgroundColor = 'rgba(248, 113, 113, 0.15)';
+                    box.style.color = 'var(--md-sys-color-error)';
+                    box.innerHTML = `❌ <strong>تعذر الاتصال:</strong> ${data.error}`;
                 }
             } catch (err) {
-                resultBox.style.color = '#EF4444';
-                resultBox.innerText = '❌ خطأ في الاتصال: ' + err.message;
+                box.style.backgroundColor = 'rgba(248, 113, 113, 0.15)';
+                box.style.color = 'var(--md-sys-color-error)';
+                box.innerText = '❌ خطأ: ' + err.message;
             }
         }
 
         async function saveModelsConfig() {
             const statusMsg = document.getElementById('save-status-msg');
-            statusMsg.style.color = 'var(--text-secondary)';
+            statusMsg.style.color = 'var(--md-sys-color-text-secondary)';
             statusMsg.innerText = 'جارِ الحفظ...';
 
             const reasonerUrl = document.getElementById('model-reasoner-url').value.trim();
@@ -1223,46 +883,35 @@
             const fastId = document.getElementById('model-fast-id').value.trim();
             const fastKey = document.getElementById('model-fast-key').value.trim() || reasonerKey;
 
-            const forbidFree = document.getElementById('policy-forbid-free').checked;
-            const allowCloud = document.getElementById('policy-allow-cloud-sensitive').checked;
-            const budget = parseInt(document.getElementById('policy-budget').value) || 2000000;
-
             const payload = {
                 profiles: {
                     reasoner: {
-                        chain: [
-                            {
-                                base_url: reasonerUrl,
-                                model: reasonerId,
-                                api_key: reasonerKey || undefined,
-                                api_key_env: reasonerKey ? "" : "LLM_KEY_A",
-                                timeout_s: 60,
-                                tier: "paid"
-                            }
-                        ],
-                        max_context_tokens: 128000,
+                        chain: [{
+                            base_url: reasonerUrl,
+                            model: reasonerId,
+                            api_key: reasonerKey || undefined,
+                            api_key_env: reasonerKey ? "" : "LLM_KEY_A",
+                            timeout_s: 60
+                        }],
                         tools: true,
                         cloud: !reasonerUrl.includes('localhost') && !reasonerUrl.includes('127.0.0.1')
                     },
                     fast: {
-                        chain: [
-                            {
-                                base_url: fastUrl,
-                                model: fastId,
-                                api_key: fastKey || undefined,
-                                api_key_env: fastKey ? "" : "LLM_KEY_A",
-                                timeout_s: 30,
-                                tier: "paid"
-                            }
-                        ],
+                        chain: [{
+                            base_url: fastUrl,
+                            model: fastId,
+                            api_key: fastKey || undefined,
+                            api_key_env: fastKey ? "" : "LLM_KEY_A",
+                            timeout_s: 30
+                        }],
                         tools: false,
                         cloud: !fastUrl.includes('localhost') && !fastUrl.includes('127.0.0.1')
                     }
                 },
                 policy: {
-                    forbid_free_tier: forbidFree,
-                    allow_cloud_for_sensitive: allowCloud,
-                    daily_token_budget: budget
+                    forbid_free_tier: true,
+                    allow_cloud_for_sensitive: false,
+                    daily_token_budget: 2000000
                 }
             };
 
@@ -1274,37 +923,36 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    statusMsg.style.color = 'var(--color-success)';
-                    statusMsg.innerText = '✅ تم حفظ وتطبيق النماذج بنجاح على السكرتير سند!';
-                    setTimeout(() => { statusMsg.innerText = ''; }, 4000);
+                    statusMsg.style.color = 'var(--md-sys-color-success)';
+                    statusMsg.innerText = '✅ تم تطبيق الإعدادات وحفظها بنجاح!';
+                    setTimeout(() => { statusMsg.innerText = ''; }, 3500);
                 } else {
-                    statusMsg.style.color = '#EF4444';
-                    statusMsg.innerText = '❌ فشل الحفظ: ' + (data.detail || 'خطأ غير معروف');
+                    statusMsg.style.color = 'var(--md-sys-color-error)';
+                    statusMsg.innerText = '❌ فشل: ' + (data.detail || 'خطأ في الحفظ');
                 }
             } catch (err) {
-                statusMsg.style.color = '#EF4444';
-                statusMsg.innerText = '❌ خطأ في الاتصال: ' + err.message;
+                statusMsg.style.color = 'var(--md-sys-color-error)';
+                statusMsg.innerText = '❌ خطأ: ' + err.message;
             }
         }
 
-        async function submitChatMessage() {
-            const input = document.getElementById('chat-query-input');
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
             const text = input.value.trim();
             if (!text) return;
 
-            const stream = document.getElementById('chat-messages-stream');
+            const stream = document.getElementById('chat-stream');
 
             const userMsg = document.createElement('div');
-            userMsg.className = 'chat-bubble bubble-user';
+            userMsg.className = 'bubble bubble-user';
             userMsg.innerText = text;
             stream.appendChild(userMsg);
-
             input.value = '';
 
-            const loadingMsg = document.createElement('div');
-            loadingMsg.className = 'chat-bubble bubble-bot';
-            loadingMsg.innerText = '⏳ جارِ التفكير والمعالجة من خلال النموذج...';
-            stream.appendChild(loadingMsg);
+            const botMsg = document.createElement('div');
+            botMsg.className = 'bubble bubble-bot';
+            botMsg.innerText = '⏳ جارِ المعالجة...';
+            stream.appendChild(botMsg);
             stream.scrollTop = stream.scrollHeight;
 
             try {
@@ -1314,18 +962,79 @@
                     body: JSON.stringify({ message: text })
                 });
                 const data = await res.json();
-                loadingMsg.innerHTML = data.reply + `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">(النموذج: ${data.model_used} • ${data.latency_ms}ms)</div>`;
+                botMsg.innerHTML = data.reply + `<div style="font-size: 0.72rem; color: var(--md-sys-color-text-tertiary); margin-top: 4px;">(${data.model_used} • ${data.latency_ms}ms)</div>`;
             } catch (err) {
-                loadingMsg.innerText = 'تعذر الاتصال بالسكرتير: ' + err.message;
+                botMsg.innerText = 'تعذر الاتصال بالسكرتير: ' + err.message;
             }
-
             stream.scrollTop = stream.scrollHeight;
         }
 
+        async function requestNewPairingCode() {
+            try {
+                const res = await fetch('/v1/web/pairing-code', { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    currentPairingCodeRaw = data.code;
+
+                    const chunks = data.code.match(/.{1,4}/g) || [data.code];
+                    const segmentedDisplay = document.getElementById('segmented-code-display');
+                    segmentedDisplay.innerHTML = chunks.map(c => `<span class="code-segment">${c}</span>`).join('');
+
+                    const serverUrl = window.location.origin;
+                    const qrPayload = JSON.stringify({ server_url: serverUrl, code: data.code });
+
+                    const qrBox = document.getElementById('qr-target-box');
+                    qrBox.innerHTML = '';
+                    if (typeof QRCode !== 'undefined') {
+                        new QRCode(qrBox, {
+                            text: qrPayload,
+                            width: 180,
+                            height: 180,
+                            colorDark : "#0F172A",
+                            colorLight : "#FFFFFF",
+                            correctLevel : QRCode.CorrectLevel.M
+                        });
+                    }
+                }
+            } catch (err) {
+                console.warn(err);
+            }
+        }
+
+        function copyPairingCode() {
+            if (!currentPairingCodeRaw) return;
+            navigator.clipboard.writeText(currentPairingCodeRaw).then(() => {
+                alert('تم نسخ رمز الاقتران!');
+            });
+        }
+
+        async function refreshDevicesList() {
+            try {
+                const res = await fetch('/v1/web/devices');
+                if (res.ok) {
+                    const devices = await res.json();
+                    const tbody = document.getElementById('devices-listing-body');
+                    if (devices.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--md-sys-color-text-tertiary); padding: 20px;">لا توجد أجهزة مقترنة حتى الآن.</td></tr>';
+                    } else {
+                        tbody.innerHTML = devices.map(d => `
+                            <tr>
+                                <td><strong>${d.name || 'هاتف أندرويد'}</strong></td>
+                                <td><code>${d.id}</code></td>
+                                <td>${d.app_version || '1.0.0'}</td>
+                                <td>${new Date(d.created_at).toLocaleString('ar-SA')}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (err) {
+                console.warn(err);
+            }
+        }
+
         window.onload = () => {
-            fetchSystemStats();
-            requestNewPairingCode();
             loadModelsSettings();
+            requestNewPairingCode();
         };
     </script>
 </body>
