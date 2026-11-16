@@ -1,0 +1,130 @@
+name: secretary
+
+services:
+  api:
+    container_name: secretary-api-1
+    image: secretary-api:latest
+    pull_policy: never
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+    env_file:
+      - /DATA/AppData/sanad/deploy/.env
+    ports:
+      - target: 8000
+        published: "8000"
+        protocol: tcp
+    labels:
+      icon: https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/open-webui.png
+      io.zimaos.app.id: zimaapp://v2app/secretary
+    secrets: [jwt_signing_key, enc_key, fcm_service_account, llm_key_a, llm_key_b, pepper]
+    volumes:
+      - type: volume
+        source: data
+        target: /data
+      - type: volume
+        source: exports
+        target: /exports
+    user: "10001:10001"
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - default
+    x-casaos:
+      ports:
+        - container: "8000"
+          description:
+            en_US: Sanad Web UI & API Port
+      volumes:
+        - container: /data
+          description:
+            en_US: SQLite Database and Storage
+        - container: /exports
+          description:
+            en_US: Exported Office Files
+
+  worker:
+    container_name: secretary-worker-1
+    image: secretary-worker:latest
+    pull_policy: never
+    command: ["python", "-m", "app.workers.run"]
+    env_file:
+      - /DATA/AppData/sanad/deploy/.env
+    labels:
+      icon: https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/open-webui.png
+      io.zimaos.app.id: zimaapp://v2app/secretary
+    secrets: [jwt_signing_key, enc_key, fcm_service_account, llm_key_a, llm_key_b, pepper]
+    volumes:
+      - type: volume
+        source: data
+        target: /data
+      - type: volume
+        source: exports
+        target: /exports
+    user: "10001:10001"
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - default
+
+volumes:
+  data:
+    name: secretary_data
+    external: true
+  exports:
+    name: secretary_exports
+    external: true
+
+networks:
+  default:
+    name: secretary_internal
+
+secrets:
+  jwt_signing_key:
+    file: /DATA/AppData/sanad/deploy/secrets/jwt_signing_key
+  enc_key:
+    file: /DATA/AppData/sanad/deploy/secrets/enc_key
+  pepper:
+    file: /DATA/AppData/sanad/deploy/secrets/pepper
+  fcm_service_account:
+    file: /DATA/AppData/sanad/deploy/secrets/fcm_service_account.json
+  llm_key_a:
+    file: /DATA/AppData/sanad/deploy/secrets/llm_key_a
+  llm_key_b:
+    file: /DATA/AppData/sanad/deploy/secrets/llm_key_b
+
+x-casaos:
+  architectures:
+    - amd64
+  author: Sanad
+  category: Utilities
+  description:
+    ar_SA: سند — السكرتير الشخصي الذكي لإدارة الرسائل والملفات والمواعيد
+    en_US: Sanad - Personal AI Secretary for managing messages, files, and calendar
+  developer: Sanad
+  icon: https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/open-webui.png
+  id: com.sanad.secretary
+  index: /docs
+  is_uncontrolled: false
+  main: api
+  port_map: "8000"
+  scheme: http
+  store_app_id: secretary
+  tagline:
+    ar_SA: السكرتير الشخصي الذكي
+    en_US: Personal AI Secretary
+  title:
+    ar_SA: سند (Sanad)
+    en_US: Sanad
