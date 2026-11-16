@@ -4,15 +4,25 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import app.secretary.contacts.ContactsSyncManager
@@ -24,6 +34,7 @@ import app.secretary.gateway.RemoteInputGateway
 import app.secretary.outbox.OutboxSyncWorker
 import app.secretary.ui.ChatScreen
 import app.secretary.ui.PoliciesScreen
+import app.secretary.ui.theme.SanadTheme
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -40,23 +51,55 @@ class MainActivity : FragmentActivity() {
         // جدولة المزامنة الدورية لصندوق الوارد
         OutboxSyncWorker.schedulePeriodicSync(this)
 
+        // اتصال تلقائي إذا كانت هناك جلسة مقترنة مسبقاً
+        if (SessionManager.hasSession(this)) {
+            connectWithSavedSession()
+        }
+
         setContent {
-            MaterialTheme {
+            SanadTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     var showPoliciesScreen by remember { mutableStateOf(false) }
+                    var showServerDetailsDialog by remember { mutableStateOf(false) }
                     val wsClient = activeWsClient
+
                     if (wsClient != null) {
                         ChatScreen(
                             wsClient = wsClient,
                             onBack = {
-                                wsClient.disconnect()
-                                execCommandsJob?.cancel()
-                                activeWsClient = null
+                                showServerDetailsDialog = true
+                            },
+                            onOpenPolicies = {
+                                showPoliciesScreen = true
+                            },
+                            onSyncContacts = {
+                                performContactsSync()
                             }
                         )
+
+                        if (showServerDetailsDialog) {
+                            ServerInfoDialog(
+                                serverUrl = wsClient.serverUrl,
+                                onDismiss = { showServerDetailsDialog = false },
+                                onDisconnect = {
+                                    wsClient.disconnect()
+                                    execCommandsJob?.cancel()
+                                    activeWsClient = null
+                                    showServerDetailsDialog = false
+                                },
+                                onUnpair = {
+                                    wsClient.disconnect()
+                                    execCommandsJob?.cancel()
+                                    activeWsClient = null
+                                    SessionManager.clearSession(this)
+                                    showServerDetailsDialog = false
+                                    Toast.makeText(this, "تم إلغاء اقتران الجهاز بنجاح", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
                     } else if (showPoliciesScreen) {
                         val serverUrl = SessionManager.getServerUrl(this)
                         val token = SessionManager.getAccessToken(this) ?: ""
@@ -66,23 +109,13 @@ class MainActivity : FragmentActivity() {
                             onBack = { showPoliciesScreen = false }
                         )
                     } else {
-                        HomeScreen(
-                            hasSavedSession = SessionManager.hasSession(this),
+                        PairingScreen(
                             savedServerUrl = SessionManager.getServerUrl(this),
-                            onOpenSpikes = {
-                                startActivity(Intent(this, SpikeActivity::class.java))
-                            },
-                            onPairAndConnect = { serverUrl, code ->
+                            onPair = { serverUrl, code ->
                                 performPairing(serverUrl, code)
                             },
-                            onReconnectSaved = {
-                                connectWithSavedSession()
-                            },
-                            onSyncContacts = {
-                                performContactsSync()
-                            },
-                            onOpenPolicies = {
-                                showPoliciesScreen = true
+                            onOpenSpikes = {
+                                startActivity(Intent(this, SpikeActivity::class.java))
                             }
                         )
                     }
@@ -94,10 +127,7 @@ class MainActivity : FragmentActivity() {
     private fun connectWithSavedSession() {
         val serverUrl = SessionManager.getServerUrl(this)
         val token = SessionManager.getAccessToken(this)
-        if (token == null) {
-            Toast.makeText(this, "لا توجد جلسة محفوظة", Toast.LENGTH_SHORT).show()
-            return
-        }
+        if (token == null || serverUrl.isBlank()) return
 
         val wsClient = SanadWebSocketClient(
             serverUrl = serverUrl.trimEnd('/'),
@@ -126,7 +156,7 @@ class MainActivity : FragmentActivity() {
                     refreshToken = session.refreshToken
                 )
 
-                // بدء مزامنة الأحداث فورا
+                // بدء مزامنة الأحداث فوراً
                 OutboxSyncWorker.enqueueImmediateSync(this@MainActivity)
 
                 val wsClient = SanadWebSocketClient(
@@ -165,7 +195,7 @@ class MainActivity : FragmentActivity() {
 
     private fun performContactsSync() {
         lifecycleScope.launch {
-            Toast.makeText(this@MainActivity, "جارِ مزامنة جهات الاتصال...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@MainActivity, "جارِ مزامنة جهات الاتصال مع الخادم...", Toast.LENGTH_SHORT).show()
             val res = ContactsSyncManager.syncDeviceContacts(this@MainActivity)
             res.onSuccess { count ->
                 Toast.makeText(this@MainActivity, "تمت مزامنة $count جهة اتصال بنجاح!", Toast.LENGTH_LONG).show()
@@ -182,25 +212,36 @@ class MainActivity : FragmentActivity() {
     }
 }
 
+/**
+ * شاشة الاقتران والترحيب الرئيسية عند الإعداد أو إعادة الربط.
+ * مصممة وفق أحدث معايير Material 3 بأسلوب واضح ومريح.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
-    hasSavedSession: Boolean,
+fun PairingScreen(
     savedServerUrl: String,
-    onOpenSpikes: () -> Unit,
-    onPairAndConnect: (serverUrl: String, code: String) -> Unit,
-    onReconnectSaved: () -> Unit,
-    onSyncContacts: () -> Unit,
-    onOpenPolicies: () -> Unit
+    onPair: (serverUrl: String, code: String) -> Unit,
+    onOpenSpikes: () -> Unit
 ) {
-    var serverUrl by remember { mutableStateOf(savedServerUrl) }
+    val defaultUrl = if (savedServerUrl.isNotBlank()) savedServerUrl else "http://192.168.100.28:8000"
+    var serverUrl by remember { mutableStateOf(defaultUrl) }
     var pairingCode by remember { mutableStateOf("") }
+    var showAdvancedOptions by remember { mutableStateOf(false) }
     var rawQrInput by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("سند — السكرتير الشخصي الذكي", fontWeight = FontWeight.Bold) }
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "سند",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { padding ->
@@ -208,135 +249,268 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (hasSavedSession) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(72.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.SmartToy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(36.dp)
                     )
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "الجهاز مقترن مسبقاً",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "الخادم: $savedServerUrl",
-                            fontSize = 13.sp
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = onReconnectSaved,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("فتح جلسة المحادثة (WebSocket)")
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = onSyncContacts,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("مزامنة جهات الاتصال مع الخادم")
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = onOpenPolicies,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("إعدادات سياسات التطبيقات والردود")
-                        }
-                    }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Card(
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "السكرتير الشخصي الذكي",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "اربط جهازك بخادمك المنزلي لبدء إدارة المواعيد، الإيجاز اليومي، والرسائل بأعلى درجات الخصوصية.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // بطاقة بيانات الاقتران
+            ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        text = "اقتران جديد بالخادم (New Pairing)",
+                        text = "بيانات الربط مع السيرفر",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = serverUrl,
-                        onValueChange = { serverUrl = it },
-                        label = { Text("رابط الخادم (Server URL)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = pairingCode,
-                        onValueChange = { pairingCode = it },
-                        label = { Text("رمز الاقتران (128-bit Code)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = "أو الصق حمولة QR كاملة أدناه:",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    OutlinedTextField(
-                        value = rawQrInput,
-                        onValueChange = { input ->
-                            rawQrInput = input
-                            try {
-                                val json = JSONObject(input.trim())
-                                if (json.has("server_url")) serverUrl = json.getString("server_url")
-                                if (json.has("code")) pairingCode = json.getString("code")
-                            } catch (_: Exception) {}
-                        },
-                        placeholder = { Text("{\"server_url\": \"...\", \"code\": \"...\"}") },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 2
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    OutlinedTextField(
+                        value = serverUrl,
+                        onValueChange = { serverUrl = it },
+                        label = { Text("عنوان الخادم (Server URL)") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Dns,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    OutlinedTextField(
+                        value = pairingCode,
+                        onValueChange = { pairingCode = it },
+                        label = { Text("رمز الاقتران (Pairing Code)") },
+                        placeholder = { Text("أدخل الرمز الظاهر على السيرفر") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Key,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     Button(
                         onClick = {
                             if (serverUrl.isNotBlank() && pairingCode.isNotBlank()) {
-                                onPairAndConnect(serverUrl, pairingCode)
+                                onPair(serverUrl.trim(), pairingCode.trim())
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = serverUrl.isNotBlank() && pairingCode.isNotBlank()
+                        enabled = serverUrl.isNotBlank() && pairingCode.isNotBlank(),
+                        shape = MaterialTheme.shapes.medium,
+                        contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
-                        Text("اقتران جديد")
+                        Icon(
+                            imageVector = Icons.Default.Link,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "اقتران وبدء العمل",
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            OutlinedButton(
-                onClick = onOpenSpikes,
-                modifier = Modifier.fillMaxWidth()
+            // قسم الخيارات المتقدمة (QR Code / Spikes)
+            TextButton(
+                onClick = { showAdvancedOptions = !showAdvancedOptions },
+                shape = MaterialTheme.shapes.small
             ) {
-                Text("فتح أداة التجارب الميدانية (Spikes S1-S5)")
+                Icon(
+                    imageVector = Icons.Default.Build,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (showAdvancedOptions) "إخفاء الخيارات الإضافية" else "خيارات متقدمة (QR / فحص)",
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+
+            AnimatedVisibility(visible = showAdvancedOptions) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp)
+                ) {
+                    OutlinedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.QrCode,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "لصق حمولة QR كاملة (اختياري)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            OutlinedTextField(
+                                value = rawQrInput,
+                                onValueChange = { input ->
+                                    rawQrInput = input
+                                    try {
+                                        val json = JSONObject(input.trim())
+                                        if (json.has("server_url")) serverUrl = json.getString("server_url")
+                                        if (json.has("code")) pairingCode = json.getString("code")
+                                    } catch (_: Exception) {}
+                                },
+                                placeholder = { Text("{\"server_url\": \"...\", \"code\": \"...\"}") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.small,
+                                maxLines = 2
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            OutlinedButton(
+                                onClick = onOpenSpikes,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text("أداة القياس الميداني (Spikes)", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
+}
+
+/**
+ * حوار عرض معلومات الخادم وخيارات إلغاء الاقتران أو فصل الجلسة.
+ */
+@Composable
+fun ServerInfoDialog(
+    serverUrl: String,
+    onDismiss: () -> Unit,
+    onDisconnect: () -> Unit,
+    onUnpair: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "معلومات خادم سند",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "الخادم المتصل حالياً:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = serverUrl,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "يمكنك قطع الاتصال المؤقت بالجلسة أو إلغاء اقتران الهاتف بالكامل لإعادة ربطه مع خادم آخر.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDisconnect,
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text("فصل الجلسة")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onUnpair,
+                shape = MaterialTheme.shapes.small,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("إلغاء الاقتران")
+            }
+        }
+    )
 }

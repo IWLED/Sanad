@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sanad_primary">#1E3A5F</color>
+    <color name="sanad_surface">#FFFFFF</color>
+    <color name="sanad_background">#F8F9FC</color>
+    <color name="sanad_dark_surface">#181A1F</color>
+    <color name="sanad_dark_background">#111317</color>
+</resources>

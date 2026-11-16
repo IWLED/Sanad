@@ -7,28 +7,41 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import app.secretary.core.audio.AudioRecordManager
 import app.secretary.core.network.ConnectionStatus
 import app.secretary.core.network.SanadWebSocketClient
 import app.secretary.core.network.ServerWsEvent
+import app.secretary.ui.theme.StatusCritical
+import app.secretary.ui.theme.StatusSuccess
+import app.secretary.ui.theme.StatusWarning
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -45,10 +58,13 @@ sealed interface ChatItem {
 fun ChatScreen(
     wsClient: SanadWebSocketClient,
     onBack: () -> Unit,
+    onOpenPolicies: () -> Unit,
+    onSyncContacts: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
     val connectionStatus by wsClient.connectionStatus.collectAsState()
     var inputText by remember { mutableStateOf("") }
     val chatItems = remember { mutableStateListOf<ChatItem>() }
@@ -68,6 +84,13 @@ fun ChatScreen(
             }
         } else {
             Toast.makeText(context, "يلزم منح إذن الميكروفون للتسجيل الصوتي", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // التمرير التلقائي لآخر رسالة
+    LaunchedEffect(chatItems.size) {
+        if (chatItems.isNotEmpty()) {
+            listState.animateScrollToItem(chatItems.size - 1)
         }
     }
 
@@ -125,7 +148,7 @@ fun ChatScreen(
                     chatItems.add(
                         ChatItem.AssistantMessage(
                             id = System.currentTimeMillis().toString(),
-                            text = "🔔 تذكير: ${event.title}\n${event.notes ?: ""}",
+                            text = "🔔 تذكير مستحق:\n${event.title}${event.notes?.let { "\n$it" } ?: ""}",
                             ts = "الآن"
                         )
                     )
@@ -150,7 +173,7 @@ fun ChatScreen(
         }
     }
 
-    // دالة طلب البصمة الحيوية عند اعتماد إجراءات المستوى الثالث T3 (R-12, D-8)
+    // التحقق بالبصمة الحيوية عند اعتماد إجراءات المستوى الثالث T3 (R-12, D-8)
     fun authenticateWithBiometrics(onSuccess: () -> Unit) {
         val activity = context as? FragmentActivity
         if (activity == null) {
@@ -188,27 +211,65 @@ fun ChatScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("سند — السكرتير الشخصي", fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        val statusDotColor = when (connectionStatus) {
-                            ConnectionStatus.CONNECTED -> Color(0xFF2E7D32)
-                            ConnectionStatus.CONNECTING -> Color(0xFFF57C00)
-                            ConnectionStatus.DISCONNECTED -> Color(0xFFC62828)
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "سند",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            val (dotColor, statusText) = when (connectionStatus) {
+                                ConnectionStatus.CONNECTED -> Pair(StatusSuccess, "متصل")
+                                ConnectionStatus.CONNECTING -> Pair(StatusWarning, "جاري الاتصال...")
+                                ConnectionStatus.DISCONNECTED -> Pair(StatusCritical, "غير متصل")
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(dotColor)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = statusText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(statusDotColor)
+                        Text(
+                            text = "السكرتير الشخصي الذكي",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
                 },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("خروج")
+                actions = {
+                    IconButton(onClick = onSyncContacts) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "مزامنة جهات الاتصال",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                }
+                    IconButton(onClick = onOpenPolicies) {
+                        Icon(
+                            imageVector = Icons.Default.Security,
+                            contentDescription = "سياسات التطبيقات والردود",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.Dns,
+                            contentDescription = "معلومات الاتصال بالخادم",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         modifier = modifier
@@ -218,243 +279,370 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // 1. قائمة الرسائل وبطاقات HITL والإيجاز والملفات
-            LazyColumn(
+            // مساحة المحادثة أو شاشة الترحيب عند بدء الجلسة
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                reverseLayout = false
             ) {
-                items(chatItems) { item ->
-                    when (item) {
-                        is ChatItem.UserMessage -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                contentAlignment = Alignment.CenterEnd
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(16.dp, 16.dp, 2.dp, 16.dp))
-                                        .background(MaterialTheme.colorScheme.primary)
-                                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                                ) {
-                                    Text(
-                                        text = item.text,
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        fontSize = 15.sp
-                                    )
-                                }
+                if (chatItems.isEmpty()) {
+                    // بطاقة ترحيبية مهنية عند فتح الجلسة
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.SmartToy,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(32.dp)
+                                )
                             }
                         }
-                        is ChatItem.AssistantMessage -> {
-                            Box(
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "مرحباً بك، أنا سند",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "سكرتيرك الشخصي الذكي المتصل بخادمك المنزلي. كيف أساعدك اليوم؟",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // اقتراحات مهنية سريعة
+                        val suggestions = listOf(
+                            "ما هي مواعيدي المسجلة لليوم؟",
+                            "لخص لي الرسائل والتنبيهات الأخيرة",
+                            "أنشئ تذكير لاجتماع عمل غداً الساعة 10 صباحاً"
+                        )
+
+                        suggestions.forEach { prompt ->
+                            SuggestionChip(
+                                onClick = {
+                                    chatItems.add(
+                                        ChatItem.UserMessage(
+                                            id = System.currentTimeMillis().toString(),
+                                            text = prompt,
+                                            ts = "الآن"
+                                        )
+                                    )
+                                    wsClient.sendUserMessage(prompt)
+                                },
+                                label = { Text(prompt, style = MaterialTheme.typography.bodySmall) },
+                                shape = MaterialTheme.shapes.small,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                contentAlignment = Alignment.CenterStart
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(16.dp, 16.dp, 16.dp, 2.dp))
-                                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                                ) {
-                                    Text(
-                                        text = item.text,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        fontSize = 15.sp
-                                    )
-                                }
-                            }
+                                    .padding(vertical = 4.dp)
+                            )
                         }
-                        is ChatItem.HitlAction -> {
-                            HitlCard(
-                                actionRequest = item.request,
-                                currentStatus = item.status,
-                                onApprove = { actionId, version, argsHash, editedText ->
-                                    if (item.request.requiresBiometric) {
-                                        authenticateWithBiometrics {
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
+
+                        items(chatItems) { item ->
+                            when (item) {
+                                is ChatItem.UserMessage -> {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.widthIn(max = 300.dp)
+                                        ) {
+                                            Text(
+                                                text = item.text,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                is ChatItem.AssistantMessage -> {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.widthIn(max = 320.dp)
+                                        ) {
+                                            Text(
+                                                text = item.text,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                is ChatItem.HitlAction -> {
+                                    HitlCard(
+                                        actionRequest = item.request,
+                                        currentStatus = item.status,
+                                        onApprove = { actionId, version, argsHash, editedText ->
+                                            if (item.request.requiresBiometric) {
+                                                authenticateWithBiometrics {
+                                                    wsClient.sendActionDecision(
+                                                        actionId = actionId,
+                                                        version = version,
+                                                        argsHash = argsHash,
+                                                        decision = "APPROVE",
+                                                        editedText = editedText,
+                                                        biometricOk = true
+                                                    )
+                                                }
+                                            } else {
+                                                wsClient.sendActionDecision(
+                                                    actionId = actionId,
+                                                    version = version,
+                                                    argsHash = argsHash,
+                                                    decision = "APPROVE",
+                                                    editedText = editedText,
+                                                    biometricOk = false
+                                                )
+                                            }
+                                        },
+                                        onReject = { actionId, version, argsHash ->
                                             wsClient.sendActionDecision(
                                                 actionId = actionId,
                                                 version = version,
                                                 argsHash = argsHash,
-                                                decision = "APPROVE",
-                                                editedText = editedText,
-                                                biometricOk = true
+                                                decision = "REJECT"
                                             )
                                         }
-                                    } else {
-                                        wsClient.sendActionDecision(
-                                            actionId = actionId,
-                                            version = version,
-                                            argsHash = argsHash,
-                                            decision = "APPROVE",
-                                            editedText = editedText,
-                                            biometricOk = false
-                                        )
-                                    }
-                                },
-                                onReject = { actionId, version, argsHash ->
-                                    wsClient.sendActionDecision(
-                                        actionId = actionId,
-                                        version = version,
-                                        argsHash = argsHash,
-                                        decision = "REJECT"
                                     )
                                 }
-                            )
+                                is ChatItem.BriefingAttachment -> {
+                                    BriefingCard(
+                                        briefingId = item.briefingId,
+                                        title = item.title,
+                                        renderedText = item.renderedText,
+                                        serverUrl = wsClient.serverUrl,
+                                        token = wsClient.token,
+                                        initialAcked = item.isAcked
+                                    )
+                                }
+                                is ChatItem.FileAttachment -> {
+                                    FileBubble(
+                                        fileId = item.fileId,
+                                        filename = item.filename,
+                                        sizeBytes = item.sizeBytes,
+                                        mimeType = item.mimeType,
+                                        serverUrl = wsClient.serverUrl,
+                                        token = wsClient.token
+                                    )
+                                }
+                            }
                         }
-                        is ChatItem.BriefingAttachment -> {
-                            BriefingCard(
-                                briefingId = item.briefingId,
-                                title = item.title,
-                                renderedText = item.renderedText,
-                                serverUrl = wsClient.serverUrl,
-                                token = wsClient.token,
-                                initialAcked = item.isAcked
-                            )
-                        }
-                        is ChatItem.FileAttachment -> {
-                            FileBubble(
-                                fileId = item.fileId,
-                                filename = item.filename,
-                                sizeBytes = item.sizeBytes,
-                                mimeType = item.mimeType,
-                                serverUrl = wsClient.serverUrl,
-                                token = wsClient.token
-                            )
-                        }
+
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
                     }
                 }
             }
 
-            // شريط حالة التسجيل أو التفريغ الصوتي
-            if (isRecording) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFD32F2F).copy(alpha = 0.15f))
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
+            // شريط حالة التسجيل الصوتي أو التفريغ
+            AnimatedVisibility(
+                visible = isRecording,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Surface(
+                    color = StatusCritical.copy(alpha = 0.1f),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "🔴 جاري التسجيل الصوتي... انقر على زر الميكروفون للإرسال والتفريغ",
-                        color = Color(0xFFD32F2F),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            } else if (isTranscribing) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "⏳ جاري تفريغ الصوت وتحويله لنص عربي عبر STT...",
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontSize = 12.sp
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(StatusCritical)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "جاري التسجيل الصوتي... اضغط على زر الإيقاف لإرسال الصوت وتفريغه",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = StatusCritical
+                        )
+                    }
                 }
             }
 
-            // 2. شريط إدخال الرسالة والإرسال وزر الميكروفون الصوتي
-            HorizontalDivider()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            AnimatedVisibility(
+                visible = isTranscribing,
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
-                // زر التسجيل الصوتي STT (Section 11.4)
-                IconButton(
-                    onClick = {
-                        if (!isRecording) {
-                            val permissionCheck = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.RECORD_AUDIO
-                            )
-                            if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
-                                isRecording = audioManager.startRecording()
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "جاري تفريغ الصوت وتحويله لنص عربي عبر STT...",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+
+            // شريط إدخال الرسائل والأوامر الصوتية
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // زر التسجيل الصوتي STT (Section 11.4)
+                    FilledTonalIconButton(
+                        onClick = {
+                            if (!isRecording) {
+                                val permissionCheck = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.RECORD_AUDIO
+                                )
+                                if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                                    isRecording = audioManager.startRecording()
+                                } else {
+                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
                             } else {
-                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                            }
-                        } else {
-                            val audioFile = audioManager.stopRecording()
-                            isRecording = false
-                            if (audioFile != null && audioFile.exists()) {
-                                isTranscribing = true
-                                coroutineScope.launch {
-                                    val res = audioManager.uploadAndTranscribe(
-                                        serverUrl = wsClient.serverUrl,
-                                        token = wsClient.token,
-                                        audioFile = audioFile
-                                    )
-                                    isTranscribing = false
-                                    res.onSuccess { transcribed ->
-                                        if (transcribed.isNotBlank()) {
-                                            chatItems.add(
-                                                ChatItem.UserMessage(
-                                                    id = System.currentTimeMillis().toString(),
-                                                    text = "🎤 $transcribed",
-                                                    ts = "الآن"
+                                val audioFile = audioManager.stopRecording()
+                                isRecording = false
+                                if (audioFile != null && audioFile.exists()) {
+                                    isTranscribing = true
+                                    coroutineScope.launch {
+                                        val res = audioManager.uploadAndTranscribe(
+                                            serverUrl = wsClient.serverUrl,
+                                            token = wsClient.token,
+                                            audioFile = audioFile
+                                        )
+                                        isTranscribing = false
+                                        res.onSuccess { transcribed ->
+                                            if (transcribed.isNotBlank()) {
+                                                chatItems.add(
+                                                    ChatItem.UserMessage(
+                                                        id = System.currentTimeMillis().toString(),
+                                                        text = transcribed,
+                                                        ts = "الآن"
+                                                    )
                                                 )
-                                            )
-                                            wsClient.sendUserMessage(transcribed)
+                                                wsClient.sendUserMessage(transcribed)
+                                            }
+                                        }.onFailure {
+                                            Toast.makeText(context, "فشل تفريغ الصوت: ${it.message}", Toast.LENGTH_SHORT).show()
                                         }
-                                    }.onFailure {
-                                        Toast.makeText(context, "فشل تفريغ الصوت: ${it.message}", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             }
-                        }
-                    },
-                    modifier = Modifier.size(44.dp)
-                ) {
-                    Text(
-                        text = if (isRecording) "⏹" else "🎙",
-                        fontSize = 22.sp
-                    )
-                }
+                        },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = if (isRecording) StatusCritical.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (isRecording) StatusCritical else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Icon(
+                            imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                            contentDescription = if (isRecording) "إيقاف التسجيل" else "تسجيل صوتي"
+                        )
+                    }
 
-                Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    placeholder = { Text("اكتب رسالتك لسند...") },
-                    modifier = Modifier.weight(1f),
-                    maxLines = 4,
-                    shape = RoundedCornerShape(24.dp)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Button(
-                    onClick = {
-                        val text = inputText.trim()
-                        if (text.isNotEmpty()) {
-                            chatItems.add(
-                                ChatItem.UserMessage(
-                                    id = System.currentTimeMillis().toString(),
-                                    text = text,
-                                    ts = "الآن"
-                                )
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        placeholder = {
+                            Text(
+                                "اطلب من سند أو اسأله شيئاً...",
+                                style = MaterialTheme.typography.bodyMedium
                             )
-                            wsClient.sendUserMessage(text)
-                            inputText = ""
-                        }
-                    },
-                    shape = CircleShape,
-                    modifier = Modifier.size(48.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("↑", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        },
+                        modifier = Modifier.weight(1f),
+                        maxLines = 4,
+                        shape = MaterialTheme.shapes.extraLarge,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    FilledIconButton(
+                        onClick = {
+                            val text = inputText.trim()
+                            if (text.isNotEmpty()) {
+                                chatItems.add(
+                                    ChatItem.UserMessage(
+                                        id = System.currentTimeMillis().toString(),
+                                        text = text,
+                                        ts = "الآن"
+                                    )
+                                )
+                                wsClient.sendUserMessage(text)
+                                inputText = ""
+                            }
+                        },
+                        enabled = inputText.isNotBlank(),
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "إرسال"
+                        )
+                    }
                 }
             }
         }

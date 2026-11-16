@@ -3,18 +3,20 @@ package app.secretary.ui
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import app.secretary.ui.theme.StatusSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,7 +28,7 @@ import java.util.Locale
 
 /**
  * بطاقة عرض الإيجاز الذكي اليومي (Briefing Card - Section 11.1).
- * تدعم القراءة الصوتية المحلية (TTS) وتأكيد الاطلاع (Ack).
+ * مصممة وفق معايير Material 3 بأسلوب هادئ وأنيق يدعم القراءة الصوتية والتأكيد.
  */
 @Composable
 fun BriefingCard(
@@ -42,6 +44,7 @@ fun BriefingCard(
     val coroutineScope = rememberCoroutineScope()
     var isAcked by remember(briefingId) { mutableStateOf(initialAcked) }
     var isSpeaking by remember { mutableStateOf(false) }
+    var isSubmittingAck by remember { mutableStateOf(false) }
     var ttsInstance by remember { mutableStateOf<TextToSpeech?>(null) }
 
     // تهيئة محرك تحويل النص إلى كلام محلياً (Android TTS)
@@ -49,7 +52,7 @@ fun BriefingCard(
         var tts: TextToSpeech? = null
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale("ar")
+                tts?.language = Locale.forLanguageTag("ar")
                 ttsInstance = tts
             }
         }
@@ -59,70 +62,109 @@ fun BriefingCard(
         }
     }
 
-    Card(
+    ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            .padding(vertical = 6.dp),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(18.dp)
         ) {
-            // الرأس: عنوان الإيجاز وحالة الاطلاع
+            // الرأس: أيقونة الإيجاز والعنوان وحالة الاطلاع
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.EventNote,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
                 if (isAcked) {
-                    Box(
-                        modifier = Modifier
-                            .background(Color(0xFF2E7D32), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "✓ تم الاطلاع",
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    SuggestionChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                "تم الاطلاع",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = StatusSuccess
+                            )
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = StatusSuccess,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = StatusSuccess.copy(alpha = 0.1f)
+                        ),
+                        border = null,
+                        shape = MaterialTheme.shapes.extraSmall
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // نص الملخص
-            Text(
-                text = renderedText,
-                fontSize = 14.sp,
-                lineHeight = 22.sp,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            // نص ملخص الإيجاز
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = renderedText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(14.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // أزرار الإجراءات: الاستماع الصوتي + تأكيد الاطلاع
+            // شريط الإجراءات: استماع صوتي محلي + تأكيد الاطلاع
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // زر الاستماع عبر TTS المحلي (Section 11.4)
-                OutlinedButton(
+                FilledTonalButton(
                     onClick = {
                         val tts = ttsInstance
                         if (tts != null) {
@@ -137,29 +179,55 @@ fun BriefingCard(
                             Toast.makeText(context, "محرك النطق الصوتي غير جاهز", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    shape = RoundedCornerShape(10.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
-                    Text(if (isSpeaking) "⏹ إيقاف" else "🔊 استماع")
+                    Icon(
+                        imageVector = if (isSpeaking) Icons.Default.Stop else Icons.Default.VolumeUp,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        if (isSpeaking) "إيقاف الصوت" else "استماع صوتي",
+                        style = MaterialTheme.typography.labelMedium
+                    )
                 }
 
                 if (!isAcked) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
+                            if (isSubmittingAck) return@Button
+                            isSubmittingAck = true
                             coroutineScope.launch {
                                 val success = sendBriefingAck(serverUrl, token, briefingId)
+                                isSubmittingAck = false
                                 if (success) {
                                     isAcked = true
-                                    Toast.makeText(context, "تم تأكيد قراءة الإيجاز", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "تم تأكيد الاطلاع", Toast.LENGTH_SHORT).show()
                                 } else {
-                                    Toast.makeText(context, "تعذر تأكيد القراءة", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "تعذر حفظ التأكيد على الخادم", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        enabled = !isSubmittingAck,
+                        shape = MaterialTheme.shapes.small
                     ) {
-                        Text("تم الاطلاع")
+                        if (isSubmittingAck) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("تأكيد الاطلاع", style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
             }
@@ -167,23 +235,25 @@ fun BriefingCard(
     }
 }
 
-/**
- * إرسال تأكيد قراءة الإيجاز إلى الخادم POST /v1/briefings/{id}/ack (Section 11.1).
- */
-private suspend fun sendBriefingAck(serverUrl: String, token: String, briefingId: String): Boolean =
-    withContext(Dispatchers.IO) {
-        try {
-            val client = OkHttpClient()
-            val url = "${serverUrl.trimEnd('/')}/v1/briefings/$briefingId/ack"
-            val request = Request.Builder()
-                .url(url)
-                .addHeader("Authorization", "Bearer $token")
-                .post("{}".toRequestBody("application/json".toMediaType()))
-                .build()
+private suspend fun sendBriefingAck(
+    serverUrl: String,
+    token: String,
+    briefingId: String
+): Boolean = withContext(Dispatchers.IO) {
+    try {
+        val client = OkHttpClient()
+        val url = "${serverUrl.trimEnd('/')}/v1/briefings/$briefingId/ack"
+        val emptyBody = "{}".toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("Authorization", "Bearer $token")
+            .post(emptyBody)
+            .build()
 
-            val response = client.newCall(request).execute()
+        client.newCall(request).execute().use { response ->
             response.isSuccessful
-        } catch (_: Exception) {
-            false
         }
+    } catch (_: Exception) {
+        false
     }
+}

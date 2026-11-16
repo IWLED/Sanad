@@ -1,21 +1,28 @@
 package app.secretary.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import app.secretary.core.network.ActionPreview
 import app.secretary.core.network.ServerWsEvent
+import app.secretary.ui.theme.StatusCritical
+import app.secretary.ui.theme.StatusSuccess
+import app.secretary.ui.theme.StatusWarning
 
+/**
+ * بطاقة اعتماد وتأكيد الإجراءات الحساسة (Human-In-The-Loop Approval Card - Section 11.2).
+ * مصممة وفق أحدث معايير Material 3 بوضوح تام لمستوى المخاطر وتعديل المسودة والاعتماد.
+ */
 @Composable
 fun HitlCard(
     actionRequest: ServerWsEvent.ActionRequest,
@@ -32,20 +39,20 @@ fun HitlCard(
     val statusText = currentStatus ?: "PENDING_APPROVAL"
     val isPending = statusText == "PENDING_APPROVAL"
 
-    Card(
+    ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            .padding(vertical = 6.dp),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(18.dp)
         ) {
             // 1. رأس البطاقة: العنوان ومستوى الخطورة وحالة التنفيذ
             Row(
@@ -55,87 +62,129 @@ fun HitlCard(
             ) {
                 Text(
                     text = preview.title,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val badgeColor = if (isT3) Color(0xFFD32F2F) else Color(0xFFF57C00)
-                    val tierLabel = if (isT3) "مستوى 3 (بصمة)" else "مستوى 2"
+                    val badgeColor = if (isT3) StatusCritical else StatusWarning
+                    val tierLabel = if (isT3) "مستوى 3 (بصمة)" else "مستوى 2 (تأكيد)"
+                    val tierIcon = if (isT3) Icons.Default.Fingerprint else Icons.Default.Security
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(badgeColor)
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    Surface(
+                        shape = MaterialTheme.shapes.extraSmall,
+                        color = badgeColor.copy(alpha = 0.12f)
                     ) {
-                        Text(
-                            text = tierLabel,
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = tierIcon,
+                                contentDescription = null,
+                                tint = badgeColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = tierLabel,
+                                color = badgeColor,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     if (!isPending) {
                         Spacer(modifier = Modifier.width(6.dp))
                         val statusColor = when (statusText) {
-                            "EXECUTED", "APPROVED" -> Color(0xFF2E7D32)
-                            "REJECTED", "CANCELLED", "FAILED" -> Color(0xFFC62828)
-                            else -> Color.Gray
+                            "EXECUTED", "APPROVED" -> StatusSuccess
+                            "REJECTED", "CANCELLED", "FAILED" -> StatusCritical
+                            else -> MaterialTheme.colorScheme.outline
                         }
-                        Text(
-                            text = statusText,
-                            color = statusColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Surface(
+                            shape = MaterialTheme.shapes.extraSmall,
+                            color = statusColor.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = when (statusText) {
+                                    "EXECUTED" -> "تم التنفيذ"
+                                    "APPROVED" -> "معتمد"
+                                    "REJECTED" -> "مرفوض"
+                                    "FAILED" -> "فشل التنفيذ"
+                                    else -> statusText
+                                },
+                                color = statusColor,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
             }
 
             // 2. المستقبل (إن وُجد)
             preview.recipient?.let { recipient ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "المستقبل: ",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                    )
-                    Text(
-                        text = recipient.name + (recipient.phone?.let { " ($it)" } ?: ""),
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "المستقبل: ",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = recipient.name + (recipient.phone?.let { " ($it)" } ?: ""),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 
             // 3. سياق المحادثة السابق (Thread context)
             if (preview.threadContext.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                        .padding(8.dp)
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "السياق الأخير:",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                    preview.threadContext.takeLast(3).forEach { msg ->
+                    Column(modifier = Modifier.padding(10.dp)) {
                         Text(
-                            text = "${msg.who}: ${msg.text}",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            maxLines = 1
+                            text = "سياق الرسائل السابقة:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        preview.threadContext.takeLast(2).forEach { msg ->
+                            Text(
+                                text = "${msg.who}: ${msg.text}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
@@ -146,102 +195,98 @@ fun HitlCard(
                 OutlinedTextField(
                     value = editedDraft,
                     onValueChange = { editedDraft = it },
-                    label = { Text("تعديل المسودة") },
+                    label = { Text("تعديل نص الرسالة المقترح") },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
+                    shape = MaterialTheme.shapes.small,
+                    minLines = 3,
                     maxLines = 6
                 )
             } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(12.dp)
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = editedDraft,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            // 5. التحذيرات الأمنية وDLP إن وُجدت
-            if (preview.warnings.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFFFF3E0))
-                        .padding(8.dp)
-                ) {
-                    preview.warnings.forEach { warning ->
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "⚠️ $warning",
-                            fontSize = 12.sp,
-                            color = Color(0xFFE65100),
-                            fontWeight = FontWeight.Medium
+                            text = "النص المقترح:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = editedDraft,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
 
-            // 6. أزرار التحكم والاعتماد [اعتماد] [تعديل] [إلغاء]
+            // 5. شريط أزرار اتخاذ القرار
             if (isPending) {
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedButton(
-                        onClick = {
-                            onReject(
-                                actionRequest.actionId,
-                                actionRequest.version,
-                                actionRequest.argsHash
-                            )
-                        },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFFC62828)
-                        )
-                    ) {
-                        Text("إلغاء")
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     TextButton(
-                        onClick = { isEditing = !isEditing }
+                        onClick = { isEditing = !isEditing },
+                        shape = MaterialTheme.shapes.small
                     ) {
-                        Text(if (isEditing) "حفظ التعديل" else "تعديل")
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isEditing) "حفظ التعديل" else "تعديل النص",
+                            style = MaterialTheme.typography.labelMedium
+                        )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Button(
-                        onClick = {
-                            val modifiedText = if (isEditing && editedDraft != preview.draftText) {
-                                editedDraft
-                            } else null
-                            onApprove(
-                                actionRequest.actionId,
-                                actionRequest.version,
-                                actionRequest.argsHash,
-                                modifiedText
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedButton(
+                            onClick = {
+                                onReject(actionRequest.actionId, actionRequest.version, actionRequest.argsHash)
+                            },
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = StatusCritical
                             )
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isT3) Color(0xFFD32F2F) else Color(0xFF2E7D32)
-                        )
-                    ) {
-                        Text(if (isT3) "اعتماد (بصمة)" else "اعتماد")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("رفض", style = MaterialTheme.typography.labelMedium)
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = {
+                                val textToSend = if (isEditing) editedDraft else null
+                                onApprove(actionRequest.actionId, actionRequest.version, actionRequest.argsHash, textToSend)
+                            },
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Icon(
+                                imageVector = if (isT3) Icons.Default.Fingerprint else Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isT3) "اعتماد بالبصمة" else "اعتماد وتنفيذ",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
                     }
                 }
             }

@@ -4,18 +4,21 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,7 +30,7 @@ import java.io.FileOutputStream
 
 /**
  * فقاعة عرض وتنزيل المستندات المولدة برمجياً (Section 11.8 - FileBubble).
- * تدعم تنزيل ملفات Word و Excel و PowerPoint وفتحها عبر FileProvider.
+ * بتصميم Material Design 3 تنفيذي موحد وواضح.
  */
 @Composable
 fun FileBubble(
@@ -43,33 +46,36 @@ fun FileBubble(
     val coroutineScope = rememberCoroutineScope()
     var isDownloading by remember { mutableStateOf(false) }
 
-    val iconText = when {
-        filename.endsWith(".docx") || mimeType.contains("word") -> "📄 Word"
-        filename.endsWith(".xlsx") || mimeType.contains("sheet") -> "📊 Excel"
-        filename.endsWith(".pptx") || mimeType.contains("presentation") -> "📑 PowerPoint"
-        else -> "📁 مستند"
+    val (icon, typeLabel) = remember(filename, mimeType) {
+        when {
+            filename.endsWith(".docx") || mimeType.contains("word") -> Pair(Icons.Default.Description, "مستند Word")
+            filename.endsWith(".xlsx") || mimeType.contains("sheet") -> Pair(Icons.Default.TableChart, "جدول بيانات Excel")
+            filename.endsWith(".pptx") || mimeType.contains("presentation") -> Pair(Icons.Default.Slideshow, "عرض PowerPoint")
+            else -> Pair(Icons.Default.Folder, "مستند")
+        }
     }
 
     val formattedSize = remember(sizeBytes) {
-        if (sizeBytes < 1024) "$sizeBytes B"
-        else if (sizeBytes < 1024 * 1024) "${sizeBytes / 1024} KB"
-        else "${sizeBytes / (1024 * 1024)} MB"
+        when {
+            sizeBytes < 1024 -> "$sizeBytes B"
+            sizeBytes < 1024 * 1024 -> "${sizeBytes / 1024} KB"
+            else -> "${sizeBytes / (1024 * 1024)} MB"
+        }
     }
 
-    Card(
+    OutlinedCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -77,42 +83,45 @@ fun FileBubble(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                Box(
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(44.dp)
                 ) {
-                    Text(
-                        text = iconText,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = typeLabel,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Column {
                     Text(
                         text = filename,
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = formattedSize,
-                        fontSize = 11.sp,
-                        color = Color.Gray
+                        text = "$typeLabel • $formattedSize",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-            Button(
+            FilledTonalButton(
                 onClick = {
-                    if (isDownloading) return@Button
+                    if (isDownloading) return@FilledTonalButton
                     isDownloading = true
                     coroutineScope.launch {
                         val downloadedFile = downloadFile(context, serverUrl, token, fileId, filename)
@@ -120,14 +129,31 @@ fun FileBubble(
                         if (downloadedFile != null) {
                             openFile(context, downloadedFile, mimeType)
                         } else {
-                            Toast.makeText(context, "فشل تنزيل الملف", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "فشل تنزيل الملف من الخادم", Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
                 enabled = !isDownloading,
-                shape = RoundedCornerShape(10.dp)
+                shape = MaterialTheme.shapes.small,
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
             ) {
-                Text(if (isDownloading) "جاري التحميل..." else "فتح الملف")
+                if (isDownloading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("جاري التحميل", style = MaterialTheme.typography.labelMedium)
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.OpenInNew,
+                        contentDescription = "فتح الملف",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("فتح الملف", style = MaterialTheme.typography.labelMedium)
+                }
             }
         }
     }
@@ -149,16 +175,17 @@ private suspend fun downloadFile(
             .get()
             .build()
 
-        val response = client.newCall(request).execute()
-        if (response.isSuccessful) {
-            val bytes = response.body?.bytes() ?: return@withContext null
-            val destDir = File(context.cacheDir, "downloads")
-            if (!destDir.exists()) destDir.mkdirs()
-            val destFile = File(destDir, filename)
-            FileOutputStream(destFile).use { it.write(bytes) }
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return@withContext null
+            val body = response.body ?: return@withContext null
+
+            val exportsDir = File(context.cacheDir, "sanad_exports").apply { mkdirs() }
+            val destFile = File(exportsDir, filename)
+
+            FileOutputStream(destFile).use { output ->
+                body.byteStream().copyTo(output)
+            }
             destFile
-        } else {
-            null
         }
     } catch (_: Exception) {
         null
@@ -178,7 +205,7 @@ private fun openFile(context: Context, file: File, mimeType: String) {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
-    } catch (e: Exception) {
-        Toast.makeText(context, "لا يوجد تطبيق مناسب لفتح هذا الملف", Toast.LENGTH_SHORT).show()
+    } catch (_: Exception) {
+        Toast.makeText(context, "لا يوجد تطبيق مثبت لفتح هذا النوع من الملفات", Toast.LENGTH_LONG).show()
     }
 }

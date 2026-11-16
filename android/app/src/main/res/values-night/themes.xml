@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Sanad" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/sanad_dark_surface</item>
+        <item name="android:navigationBarColor">@color/sanad_dark_surface</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:colorBackground">@color/sanad_dark_background</item>
+    </style>
+</resources>
