@@ -5,7 +5,7 @@ import re
 
 # إزالة محارف Unicode Tag ومحارف التحكم وتجاوزات الاتجاه Bidi
 CLEAN_CHARS_REGEX = re.compile(
-    r"[\uE0000-\uE007F\u202A-\u202E\u2066-\u2069\x00-\x08\x0B\x0C\x0E-\x1F\x7F]"
+    r"[\U000E0000-\U000E007F\u202A-\u202E\u2066-\u2069\x00-\x08\x0B\x0C\x0E-\x1F\x7F]"
 )
 
 

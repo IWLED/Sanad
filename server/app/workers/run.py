@@ -10,6 +10,7 @@ from app.config import settings
 from app.core.audit import verify_audit_chain
 from app.core.safety.logging_filter import configure_logging, logger
 from app.db.base import async_session_factory
+from app.workers.retention import run_retention_cleanup
 
 
 async def job_verify_audit_log() -> None:
@@ -35,6 +36,15 @@ async def main() -> None:
         id="audit_verification",
         coalesce=True,
         misfire_grace_time=300,
+    )
+    scheduler.add_job(
+        run_retention_cleanup,
+        "cron",
+        hour=3,
+        minute=30,
+        id="daily_retention_cleanup",
+        coalesce=True,
+        misfire_grace_time=600,
     )
     scheduler.start()
     logger.info("sanad_worker_scheduler_started")

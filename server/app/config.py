@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     pairing_code_ttl_min: int = Field(default=10, alias="PAIRING_CODE_TTL_MIN")
     cf_access_required: bool = Field(default=False, alias="CF_ACCESS_REQUIRED")
 
+    # الاحتفاظ بالبيانات (R-21)
+    retention_events_days: int = Field(default=30, alias="RETENTION_EVENTS_DAYS")
+    retention_sensitive_days: int = Field(default=7, alias="RETENTION_SENSITIVE_DAYS")
+
     # LLM
     llm_profiles_file: Path = Field(
         default=Path("config/models.yaml"),

@@ -61,3 +61,11 @@ async def get_current_device(
         )
 
     return device
+
+
+async def get_authenticated_device_id(
+    device: Device = Depends(get_current_device),
+) -> str:
+    """استرجاع معرف الجهاز الموثوق فقط."""
+    return device.id
+

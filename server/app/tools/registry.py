@@ -70,6 +70,13 @@ class ToolRegistry:
         self.register(MockT2Tool())
         self.register(MockT3Tool())
 
+        # تسجيل أدوات صندوق الوارد (المرحلة 2)
+        from app.tools.inbox import GetEventTool, GetThreadTool, SearchInboxTool
+
+        self.register(SearchInboxTool())
+        self.register(GetThreadTool())
+        self.register(GetEventTool())
+
     def register(self, tool: BaseTool) -> None:
         self._tools[tool.name] = tool
 

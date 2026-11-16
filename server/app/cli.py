@@ -121,6 +121,10 @@ def main() -> None:
     # أمر kill
     subparsers.add_parser("kill", help="إيقاف طارئ للوكيل R-17")
 
+    # أمر forget (R-21)
+    p_forget = subparsers.add_parser("forget", help="حذف شامل لجهة اتصال وكافة أحداثها (R-21)")
+    p_forget.add_argument("identifier", help="معرّف جهة الاتصال أو رقم الهاتف E.164")
+
     args = parser.parse_args()
 
     if args.command == "pair-create":
@@ -129,6 +133,14 @@ def main() -> None:
         asyncio.run(cli_audit_verify())
     elif args.command == "kill":
         asyncio.run(cli_emergency_kill())
+    elif args.command == "forget":
+        from app.workers.retention import forget_contact
+
+        ok = asyncio.run(forget_contact(args.identifier))
+        if ok:
+            print(f"✅ تم حذف كافة السجلات والأحداث المرتبطة بـ '{args.identifier}' بنجاح.")
+        else:
+            print(f"❌ لم يتم العثور على جهة اتصال تطابق '{args.identifier}'.")
 
 
 if __name__ == "__main__":
