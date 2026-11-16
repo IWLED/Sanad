@@ -11,6 +11,7 @@ from app.core.audit import verify_audit_chain
 from app.core.briefing.engine import generate_briefing
 from app.core.safety.logging_filter import configure_logging, logger
 from app.db.base import async_session_factory
+from app.workers.jobs_dispatcher import process_due_jobs
 from app.workers.retention import run_retention_cleanup
 
 
@@ -76,6 +77,14 @@ async def main() -> None:
         id="evening_briefing",
         coalesce=True,
         misfire_grace_time=600,
+    )
+    scheduler.add_job(
+        process_due_jobs,
+        "interval",
+        seconds=30,
+        id="dispatch_due_jobs",
+        coalesce=True,
+        misfire_grace_time=15,
     )
     scheduler.start()
     logger.info("sanad_worker_scheduler_started")

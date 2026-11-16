@@ -70,9 +70,17 @@ class ToolRegistry:
         self.register(MockT2Tool())
         self.register(MockT3Tool())
 
-        # تسجيل أدوات صندوق الوارد (المرحلة 2)
+        # تسجيل أدوات صندوق الوارد والذاكرة والرد (المرحلة 2 و 3)
+        from app.tools.calendar import CalendarCreateTool, CalendarListTool
+        from app.tools.email import GmailCreateDraftTool, GmailSearchTool, GmailSendTool
         from app.tools.inbox import GetEventTool, GetThreadTool, SearchInboxTool
         from app.tools.memory import RememberTool, SearchMemoryTool
+        from app.tools.office.tool import GenerateDocumentTool
+        from app.tools.reminders import (
+            ScheduleMessageTool,
+            ScheduleReminderTool,
+            TodoCreateTool,
+        )
         from app.tools.reply import ProposeReplyTool
 
         self.register(SearchInboxTool())
@@ -81,6 +89,15 @@ class ToolRegistry:
         self.register(RememberTool())
         self.register(SearchMemoryTool())
         self.register(ProposeReplyTool())
+        self.register(ScheduleReminderTool())
+        self.register(ScheduleMessageTool())
+        self.register(TodoCreateTool())
+        self.register(GenerateDocumentTool())
+        self.register(CalendarListTool())
+        self.register(CalendarCreateTool())
+        self.register(GmailSearchTool())
+        self.register(GmailCreateDraftTool())
+        self.register(GmailSendTool())
 
     def register(self, tool: BaseTool) -> None:
         self._tools[tool.name] = tool

@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.audio import router as audio_router
 from app.api.auth import router as auth_router
 from app.api.briefings import router as briefings_router
 from app.api.contacts import router as contacts_router
+from app.api.files import router as files_router
 from app.api.health import router as health_router
 from app.api.ingest import router as ingest_router
 from app.api.pairing import router as pairing_router
@@ -47,6 +49,8 @@ def create_app() -> FastAPI:
     app.include_router(contacts_router)
     app.include_router(policies_router)
     app.include_router(briefings_router)
+    app.include_router(audio_router)
+    app.include_router(files_router)
 
     return app
 
