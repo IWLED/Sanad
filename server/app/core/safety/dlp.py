@@ -8,6 +8,10 @@ SECRET_PATTERNS = [
     (re.compile(r"AKIA[0-9A-Z]{16}"), "مفتاح AWS سري"),
     (re.compile(r"eyJ[a-zA-Z0-9_-]{10,}\.eyJ[a-zA-Z0-9_-]{10,}"), "رمز JWT مضمن"),
     (re.compile(r"-----BEGIN [A-Z ]+ PRIVATE KEY-----"), "مفتاح تشفير خاص"),
+    (
+        re.compile(r"\b(?:OTP|رمز التحقق|رمز التأكيد)\s*[:=]?\s*\d{4,8}\b", re.IGNORECASE),
+        "رمز تحقق مؤقت OTP",
+    ),
 ]
 
 # أنماط البيانات الحساسة (IBAN, بطاقات, هوية)

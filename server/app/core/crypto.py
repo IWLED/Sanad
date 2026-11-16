@@ -9,6 +9,7 @@ import jwt
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from app.config import settings
 
@@ -100,3 +101,34 @@ def verify_device_signature(pubkey_pem: str, message: bytes, signature_bytes: by
         return True
     except (InvalidSignature, Exception):
         return False
+
+
+def get_encryption_key() -> bytes:
+    """جلب مفتاح التشفير المتناظر AES-256 أو توليد مفتاح اشتقاقي آمن."""
+    key_str = settings.get_enc_key()
+    if key_str:
+        if len(key_str) == 64:
+            return bytes.fromhex(key_str)
+        return hashlib.sha256(key_str.encode("utf-8")).digest()
+    return hashlib.sha256(b"sanad_default_internal_aes_key").digest()
+
+
+def encrypt_data(data: str | bytes, key: bytes | None = None) -> bytes:
+    """تشفير البيانات بتشفير AES-GCM الأصيل مع التحقق من السلامة (R-15)."""
+    k = key or get_encryption_key()
+    aesgcm = AESGCM(k)
+    nonce = secrets.token_bytes(12)
+    payload = data.encode("utf-8") if isinstance(data, str) else data
+    ciphertext = aesgcm.encrypt(nonce, payload, None)
+    return nonce + ciphertext
+
+
+def decrypt_data(ciphertext: bytes, key: bytes | None = None) -> str:
+    """فك تشفير البيانات المشفرة بـ AES-GCM واسترجاع النص الأصلي (R-15)."""
+    k = key or get_encryption_key()
+    aesgcm = AESGCM(k)
+    nonce = ciphertext[:12]
+    ct = ciphertext[12:]
+    decrypted_bytes = aesgcm.decrypt(nonce, ct, None)
+    return decrypted_bytes.decode("utf-8")
+
