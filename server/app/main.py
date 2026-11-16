@@ -5,7 +5,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.auth import router as auth_router
 from app.api.health import router as health_router
+from app.api.pairing import router as pairing_router
 from app.config import settings
 from app.core.safety.logging_filter import configure_logging, logger
 
@@ -28,8 +30,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # تسجيل مسارات الفحص العام
+    # تسجيل مسارات الفحص والاقتران والمصادقة
     app.include_router(health_router)
+    app.include_router(pairing_router)
+    app.include_router(auth_router)
 
     return app
 
