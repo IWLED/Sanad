@@ -37,8 +37,19 @@ import app.secretary.outbox.OutboxSyncWorker
 import app.secretary.ui.ChatScreen
 import app.secretary.ui.PoliciesScreen
 import app.secretary.ui.theme.SanadTheme
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
+import android.content.ClipboardManager
+import android.content.Context
+import android.graphics.BitmapFactory
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Image
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import com.google.zxing.BinaryBitmap
+import com.google.zxing.MultiFormatReader
+import com.google.zxing.RGBLuminanceSource
+import com.google.zxing.common.HybridBinarizer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -227,30 +238,71 @@ fun PairingScreen(
     onPair: (serverUrl: String, code: String) -> Unit,
     onOpenSpikes: () -> Unit
 ) {
+    val context = LocalContext.current
     val defaultUrl = if (savedServerUrl.isNotBlank()) savedServerUrl else "http://192.168.100.28:8000"
     var serverUrl by remember { mutableStateOf(defaultUrl) }
     var pairingCode by remember { mutableStateOf("") }
     var showAdvancedOptions by remember { mutableStateOf(false) }
     var rawQrInput by remember { mutableStateOf("") }
 
-    val qrScannerLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
-        if (result.contents != null) {
-            val payload = result.contents.trim()
-            try {
-                val json = JSONObject(payload)
-                val parsedUrl = json.optString("server_url", "")
-                val parsedCode = json.optString("code", "")
-                if (parsedUrl.isNotBlank() && parsedCode.isNotBlank()) {
-                    serverUrl = parsedUrl
-                    pairingCode = parsedCode.uppercase()
-                    onPair(parsedUrl, parsedCode.uppercase())
-                    return@rememberLauncherForActivityResult
-                }
-            } catch (_: Exception) {}
+    fun handleScannedPayload(payload: String) {
+        val clean = payload.trim()
+        try {
+            val json = JSONObject(clean)
+            val parsedUrl = json.optString("server_url", "")
+            val parsedCode = json.optString("code", "")
+            if (parsedCode.isNotBlank()) {
+                val targetUrl = if (parsedUrl.isNotBlank()) parsedUrl else serverUrl
+                pairingCode = parsedCode.uppercase()
+                serverUrl = targetUrl
+                onPair(targetUrl, parsedCode.uppercase())
+                return
+            }
+        } catch (_: Exception) {}
 
-            pairingCode = payload.uppercase()
-            if (serverUrl.isNotBlank()) {
-                onPair(serverUrl, payload.uppercase())
+        val codeOnly = clean.replace(" ", "").replace("-", "").uppercase()
+        pairingCode = codeOnly
+        if (serverUrl.isNotBlank()) {
+            onPair(serverUrl, codeOnly)
+        }
+    }
+
+    val gmsScanner = remember {
+        try {
+            val options = GmsBarcodeScannerOptions.Builder()
+                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                .enableAutoZoom()
+                .build()
+            GmsBarcodeScanning.getClient(context, options)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    val galleryPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+                if (bitmap != null) {
+                    val intArray = IntArray(bitmap.width * bitmap.height)
+                    bitmap.getPixels(intArray, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+                    val source = RGBLuminanceSource(bitmap.width, bitmap.height, intArray)
+                    val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
+                    val result = MultiFormatReader().decode(binaryBitmap)
+                    val text = result?.text
+                    if (!text.isNullOrBlank()) {
+                        Toast.makeText(context, "تم مسح الرمز من الصورة بنجاح!", Toast.LENGTH_SHORT).show()
+                        handleScannedPayload(text)
+                    } else {
+                        Toast.makeText(context, "لم يتم العثور على رمز QR صالح في الصورة", Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    Toast.makeText(context, "تعذر قراءة الصورة المختارة", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "تعذر فك شفرة الصورة: تأكد من وضوح رمز الـ QR", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -333,16 +385,30 @@ fun PairingScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // خيار المسح المباشر عبر الكاميرا
+                    // خيار المسح المباشر عبر الكاميرا (Google Code Scanner الآمن والمستقر تماماً)
                     Button(
                         onClick = {
-                            val options = ScanOptions().apply {
-                                setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                                setPrompt("وجّه كاميرا هاتفك نحو رمز الـ QR على شاشة السيرفر")
-                                setBeepEnabled(true)
-                                setOrientationLocked(false)
+                            if (gmsScanner != null) {
+                                try {
+                                    gmsScanner.startScan()
+                                        .addOnSuccessListener { barcode ->
+                                            val raw = barcode.rawValue ?: barcode.displayValue ?: ""
+                                            if (raw.isNotBlank()) {
+                                                handleScannedPayload(raw)
+                                            }
+                                        }
+                                        .addOnCanceledListener {
+                                            // تم إلغاء المسح بأمان
+                                        }
+                                        .addOnFailureListener { error ->
+                                            Toast.makeText(context, "تعذر تشغيل الكاميرا التلقائية: ${error.localizedMessage ?: "حدث خطأ"}", Toast.LENGTH_LONG).show()
+                                        }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "خطأ في تشغيل الكاميرا: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "خدمة المسح بالكاميرا غير متاحة، يرجى اختيار الصورة من المعرض أو الإدخال اليدوي", Toast.LENGTH_LONG).show()
                             }
-                            qrScannerLauncher.launch(options)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
@@ -358,6 +424,33 @@ fun PairingScreen(
                             "مسح رمز الـ QR من شاشة السيرفر",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // خيار اختيار صورة الـ QR من معرض الصور كبديل مضمون 100%
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                galleryPickerLauncher.launch("image/*")
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "تعذر فتح المعرض: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "أو اختيار صورة الـ QR من المعرض",
+                            style = MaterialTheme.typography.labelLarge
                         )
                     }
 
@@ -408,6 +501,24 @@ fun PairingScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                val clip = clipboard?.primaryClip?.getItemAt(0)?.text?.toString()
+                                if (!clip.isNullOrBlank()) {
+                                    pairingCode = clip.trim().replace(" ", "").replace("-", "").uppercase()
+                                    Toast.makeText(context, "تم لصق الرمز من الحافظة!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "الحافظة فارغة", Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.ContentPaste,
+                                    contentDescription = "لصق من الحافظة",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
                         singleLine = true
@@ -415,7 +526,7 @@ fun PairingScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    OutlinedButton(
+                    Button(
                         onClick = {
                             val cleanCode = pairingCode.trim().replace(" ", "").replace("-", "").uppercase()
                             if (serverUrl.isNotBlank() && cleanCode.isNotBlank()) {
@@ -434,8 +545,9 @@ fun PairingScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "اقتران يدوي بالخادم",
-                            style = MaterialTheme.typography.labelLarge
+                            "ربط واقتران بالخادم",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }

@@ -64,8 +64,11 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
 
-    // قارئ رمز الاستجابة السريعة QR Barcode Scanner (JourneyApps ZXing)
-    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    // قارئ رمز الاستجابة السريعة الرسمي فائق الاستقرار عبر خدمات جوجل
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+
+    // مكتبة ZXing Core لقراءة وتحليل الأكواد محلياً بدون أي اعتماديات خارجية
+    implementation("com.google.zxing:core:3.5.3")
 
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
