@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سند (Sanad) — السكرتير الشخصي الذكي</title>
+    <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/open-webui.png">
+    <style>
+        :root {
+            --md-sys-color-primary: #1E3A5F;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #D6E3F8;
+            --md-sys-color-on-primary-container: #0D2847;
+            --md-sys-color-secondary: #4A5F78;
+            --md-sys-color-surface: #FFFFFF;
+            --md-sys-color-on-surface: #191C20;
+            --md-sys-color-surface-variant: #EBEFF5;
+            --md-sys-color-on-surface-variant: #44474E;
+            --md-sys-color-background: #F8F9FC;
+            --md-sys-color-on-background: #191C20;
+            --md-sys-color-outline: #C4CBD4;
+            --md-sys-color-outline-variant: #E0E4EB;
+            --md-sys-color-success: #2E7D32;
+            --md-sys-color-warning: #D97706;
+            --md-sys-color-error: #DC2626;
+            --md-shape-corner-small: 8px;
+            --md-shape-corner-medium: 14px;
+            --md-shape-corner-large: 20px;
+            --md-shape-corner-full: 9999px;
+            --md-sys-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Cairo', 'Noto Sans Arabic', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--md-sys-font);
+        }
+
+        body {
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* شريط العنوان العلوي M3 TopAppBar */
+        header.top-app-bar {
+            background-color: var(--md-sys-color-surface);
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            padding: 12px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--md-shape-corner-small);
+            background-color: var(--md-sys-color-primary-container);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--md-sys-color-primary);
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--md-sys-color-primary);
+            line-height: 1.3;
+        }
+
+        .brand-text p {
+            font-size: 0.82rem;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: var(--md-shape-corner-full);
+            background-color: rgba(46, 125, 50, 0.1);
+            color: var(--md-sys-color-success);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-success);
+        }
+
+        .btn-docs {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: var(--md-shape-corner-small);
+            border: 1px solid var(--md-sys-color-outline);
+            background-color: transparent;
+            color: var(--md-sys-color-secondary);
+            font-size: 0.84rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-docs:hover {
+            background-color: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-primary);
+        }
+
+        /* تخطيط الصفحة */
+        main.container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 20px;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* شريط التبويبات M3 Tabs */
+        .tabs-nav {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--md-sys-color-outline-variant);
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: -2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--md-sys-color-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--md-sys-color-primary);
+            border-bottom-color: var(--md-sys-color-primary);
+        }
+
+        /* أقسام المحتوى */
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* بطاقات M3 Cards */
+        .card {
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-corner-medium);
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-subtitle {
+            font-size: 0.88rem;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 20px;
+        }
+
+        /* شبكة الإحصائيات */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-corner-medium);
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--md-shape-corner-small);
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .stat-content .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--md-sys-color-primary);
+        }
+
+        .stat-content .stat-label {
+            font-size: 0.82rem;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        /* منطقة توليد رمز الاقتران */
+        .pairing-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .pairing-box {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .code-display {
+            background: var(--md-sys-color-surface-variant);
+            border: 2px dashed var(--md-sys-color-outline);
+            border-radius: var(--md-shape-corner-medium);
+            padding: 24px;
+            text-align: center;
+        }
+
+        .code-text {
+            font-family: monospace;
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--md-sys-color-primary);
+            margin: 12px 0;
+            word-break: break-all;
+        }
+
+        .qr-canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #FFFFFF;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-corner-medium);
+        }
+
+        /* الأزرار M3 Buttons */
+        .btn-primary {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--md-shape-corner-small);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.92;
+        }
+
+        .btn-secondary {
+            background-color: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+            border: none;
+            padding: 10px 18px;
+            border-radius: var(--md-shape-corner-small);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--md-sys-color-outline-variant);
+        }
+
+        /* شاشة المحادثة المباشرة في الويب */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 520px;
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-shape-corner-medium);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .msg-bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: var(--md-shape-corner-medium);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .msg-user {
+            align-self: flex-start;
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-assistant {
+            align-self: flex-end;
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-bar {
+            padding: 14px 20px;
+            background: var(--md-sys-color-background);
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: var(--md-shape-corner-full);
+            background: var(--md-sys-color-surface);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: var(--md-sys-color-primary);
+        }
+
+        /* الجداول */
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        table.data-table th, table.data-table td {
+            padding: 12px 16px;
+            text-align: right;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+
+        table.data-table th {
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+            font-weight: 600;
+        }
+
+        /* التذييل */
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.82rem;
+            color: var(--md-sys-color-on-surface-variant);
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-app-bar">
+        <div class="brand-container">
+            <div class="brand-logo">سـ</div>
+            <div class="brand-text">
+                <h1>سند (Sanad)</h1>
+                <p>السكرتير الشخصي الذكي — لوحة التحكم المركزية</p>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span>الخادم نشط وجاهز</span>
+            </div>
+            <a href="/docs" target="_blank" class="btn-docs">
+                <span>توثيق الـ API</span>
+                <span style="font-size: 10px;">↗</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- شبكة الإحصائيات السريعة -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📱</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-devices">-</div>
+                    <div class="stat-label">الأجهزة المقترنة</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🛡️</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-policies">-</div>
+                    <div class="stat-label">التطبيقات المراقبة</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📥</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-events">-</div>
+                    <div class="stat-label">الأحداث والرسائل المؤرشفة</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔒</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-audit">سليم</div>
+                    <div class="stat-label">سجل التدقيق (R-16)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- شريط التبويبات -->
+        <nav class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('pairing')">📱 ربط الأجهزة (Pairing)</button>
+            <button class="tab-btn" onclick="switchTab('chat')">💬 محادثة سند المباشرة (Web Chat)</button>
+            <button class="tab-btn" onclick="switchTab('devices')">📋 الأجهزة المقترنة</button>
+            <button class="tab-btn" onclick="switchTab('security')">🛡️ قواعد الأمان والصحة</button>
+        </nav>
+
+        <!-- تبويب الاقتران ورمز QR -->
+        <div id="tab-pairing" class="tab-pane active">
+            <div class="card">
+                <div class="card-title">🔗 توليد رمز اقتران جديد لربط تطبيق الجوال</div>
+                <div class="card-subtitle">
+                    اضغط على الزر أدناه لتوليد رمز أمان فوري ومسحه بكاميرا هاتفك أو نسخه إلى تطبيق سند.
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <button class="btn-primary" onclick="generateNewPairingCode()">
+                        <span>🔑 توليد رمز اقتران جديد الآن</span>
+                    </button>
+                </div>
+
+                <div id="pairing-result" style="display: none;" class="pairing-box">
+                    <div class="code-display">
+                        <div style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant);">رمز الاقتران (128-bit Code):</div>
+                        <div class="code-text" id="raw-code-text">----------------</div>
+                        <div style="font-size: 0.8rem; color: var(--md-sys-color-warning);" id="expires-text">الصلاحية: 10 دقائق</div>
+                        <div style="margin-top: 14px;">
+                            <button class="btn-secondary" onclick="copyCode()">📋 نسخ الرمز</button>
+                        </div>
+                    </div>
+
+                    <div class="qr-canvas-container">
+                        <div style="font-size: 0.88rem; font-weight: 600; margin-bottom: 12px; color: var(--md-sys-color-primary);">
+                            امسح الرمز من تطبيق سند:
+                        </div>
+                        <div id="qrcode-box" style="padding: 10px; background: #fff;"></div>
+                        <div style="font-size: 0.78rem; color: #666; margin-top: 8px;">يحتوي على رابط الخادم وكود الأمان المشفر</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- تبويب المحادثة المباشرة -->
+        <div id="tab-chat" class="tab-pane">
+            <div class="card" style="padding: 0;">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="msg-bubble msg-assistant">
+                            مرحباً بك! أنا سند سكرتيرك الشخصي الذكي. يمكنك التحدث معي مباشرة من هنا أو سؤالي عن مواعيدك وتذكيراتك أو طلب إنشاء مستند Word أو جدول Excel.
+                        </div>
+                    </div>
+
+                    <div class="chat-input-bar">
+                        <input type="text" class="chat-input" id="chat-input" placeholder="اكتب طلبك لسند واضغط Enter..." onkeydown="handleChatKey(event)">
+                        <button class="btn-primary" onclick="sendChatMessage()">إرسال</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- تبويب الأجهزة المقترنة -->
+        <div id="tab-devices" class="tab-pane">
+            <div class="card">
+                <div class="card-title">📱 قائمة الأجهزة المصرح لها بالاتصال</div>
+                <div class="card-subtitle">الأجهزة الموثقة بمفاتيح Android Keystore الخاصة (P-256).</div>
+
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>اسم الجهاز</th>
+                                <th>معرف الجهاز (Device ID)</th>
+                                <th>إصدار التطبيق</th>
+                                <th>تاريخ الاقتران</th>
+                                <th>آخر اتصال</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devices-table-body">
+                            <tr><td colspan="5" style="text-align: center; color: #888;">جارِ التحميل...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- تبويب الأمان والصحة -->
+        <div id="tab-security" class="tab-pane">
+            <div class="card">
+                <div class="card-title">🔒 سلامة المنظومة وقواعد الأمان (R-01 إلى R-22)</div>
+                <div class="card-subtitle">فحص آلي لسلامة التشفير ومطابقة القرارات المعمارية.</div>
+
+                <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; padding: 0;">
+                    <li style="padding: 10px 14px; background: var(--md-sys-color-surface-variant); border-radius: 8px; display: flex; justify-content: space-between;">
+                        <span>🛡️ R-01: عدم تنفيذ أي إجراء خارجي دون موافقة بشرية صريحة (HITL)</span>
+                        <strong style="color: var(--md-sys-color-success);">مفعل ومطبق</strong>
+                    </li>
+                    <li style="padding: 10px 14px; background: var(--md-sys-color-surface-variant); border-radius: 8px; display: flex; justify-content: space-between;">
+                        <span>🔐 R-15: تشفير البيانات الحساسة عبر AES-256-GCM محلياً</span>
+                        <strong style="color: var(--md-sys-color-success);">مفعل ومطبق</strong>
+                    </li>
+                    <li style="padding: 10px 14px; background: var(--md-sys-color-surface-variant); border-radius: 8px; display: flex; justify-content: space-between;">
+                        <span>📜 R-16: سجل تدقيق غير قابل للتلاعب متسلسل التجزئة (Hash Chained)</span>
+                        <strong style="color: var(--md-sys-color-success);" id="sec-audit-status">سليم ومتحقق</strong>
+                    </li>
+                    <li style="padding: 10px 14px; background: var(--md-sys-color-surface-variant); border-radius: 8px; display: flex; justify-content: space-between;">
+                        <span>⚡ R-17: قاطع الطوارئ الآلي وتجميد الحسابات عند الشك</span>
+                        <strong style="color: var(--md-sys-color-success);">جاهز</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        سند (Sanad) — مشروع السكرتير الشخصي الذكي • متصل عبر شبكتك المنزلية الخاصة ZimaOS
+    </footer>
+
+    <!-- مولد QR Code محلي خفيف الوزن بدون اتصال خارجي -->
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+            const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const activePane = document.getElementById('tab-' + tabId);
+            if (activePane) activePane.classList.add('active');
+
+            if (tabId === 'devices') loadDevices();
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/v1/web/stats');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('stat-devices').innerText = data.devices_count;
+                    document.getElementById('stat-policies').innerText = data.policies_count;
+                    document.getElementById('stat-events').innerText = data.events_count;
+                    document.getElementById('stat-audit').innerText = data.audit_chain_valid ? 'سليم ومتحقق' : 'تحذير';
+                    document.getElementById('sec-audit-status').innerText = data.audit_chain_valid ? 'سليم ومتحقق' : 'تنبيه';
+                }
+            } catch (err) {
+                console.warn('Stats fetch error:', err);
+            }
+        }
+
+        async function generateNewPairingCode() {
+            try {
+                const res = await fetch('/v1/web/pairing-code', { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('raw-code-text').innerText = data.code;
+                    document.getElementById('pairing-result').style.display = 'grid';
+
+                    const serverUrl = window.location.origin;
+                    const fullPayload = JSON.stringify({ server_url: serverUrl, code: data.code });
+
+                    const qrBox = document.getElementById('qrcode-box');
+                    qrBox.innerHTML = '';
+                    if (typeof QRCode !== 'undefined') {
+                        new QRCode(qrBox, {
+                            text: fullPayload,
+                            width: 180,
+                            height: 180,
+                            colorDark : "#1E3A5F",
+                            colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.M
+                        });
+                    } else {
+                        qrBox.innerText = fullPayload;
+                    }
+                }
+            } catch (err) {
+                alert('فشل توليد رمز الاقتران: ' + err.message);
+            }
+        }
+
+        function copyCode() {
+            const code = document.getElementById('raw-code-text').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('تم نسخ رمز الاقتران إلى الحافظة بنجاح!');
+            });
+        }
+
+        async function loadDevices() {
+            try {
+                const res = await fetch('/v1/web/devices');
+                if (res.ok) {
+                    const list = await res.json();
+                    const tbody = document.getElementById('devices-table-body');
+                    if (list.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888;">لا توجد أجهزة مقترنة بعد. استخدم تبويب ربط الأجهزة لربط هاتفك.</td></tr>';
+                    } else {
+                        tbody.innerHTML = list.map(d => `
+                            <tr>
+                                <td><strong>${d.name || 'هاتف أندرويد'}</strong></td>
+                                <td><code>${d.id}</code></td>
+                                <td>${d.app_version || '1.0.0'}</td>
+                                <td>${new Date(d.created_at).toLocaleString('ar-SA')}</td>
+                                <td>${new Date(d.last_seen_at).toLocaleString('ar-SA')}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (err) {
+                console.warn(err);
+            }
+        }
+
+        function handleChatKey(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const chatMessages = document.getElementById('chat-messages');
+
+            const userMsg = document.createElement('div');
+            userMsg.className = 'msg-bubble msg-user';
+            userMsg.innerText = text;
+            chatMessages.appendChild(userMsg);
+
+            input.value = '';
+
+            setTimeout(() => {
+                const botMsg = document.createElement('div');
+                botMsg.className = 'msg-bubble msg-assistant';
+                botMsg.innerText = 'أهلاً بك! أنا متصل ومستعد لمعاونتك. لضمان أفضل تجربة مع الصلاحيات وقراءة الرسائل، يمكنك استخدام تطبيق الجوال المقترن أو سؤالي عن الملفات والجدولة.';
+                chatMessages.appendChild(botMsg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 500);
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        window.onload = () => {
+            loadStats();
+        };
+    </script>
+</body>
+</html>

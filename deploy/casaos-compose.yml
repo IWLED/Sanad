@@ -116,7 +116,7 @@ x-casaos:
   developer: Sanad
   icon: https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/open-webui.png
   id: com.sanad.secretary
-  index: /docs
+  index: /
   is_uncontrolled: false
   main: api
   port_map: "8000"

@@ -18,6 +18,7 @@ from app.api.ws import router as ws_router
 from app.config import settings
 from app.core.safety.logging_filter import configure_logging, logger
 from app.core.ws.dispatcher import dispatcher
+from app.web.router import router as web_router
 
 
 @asynccontextmanager
@@ -51,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(briefings_router)
     app.include_router(audio_router)
     app.include_router(files_router)
+    app.include_router(web_router)
 
     return app
 
