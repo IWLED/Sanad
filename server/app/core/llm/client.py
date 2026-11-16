@@ -8,6 +8,8 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
+from pathlib import Path
+
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,10 +49,29 @@ class LLMClient:
         self.config = config or load_models_config()
 
     def get_api_key(self, entry: ChainEntry) -> str:
-        """استخراج مفتاح API من متغير البيئة أو إرجاع قيمة افتراضية للوسطاء المحليين."""
+        """استخراج مفتاح API من الإدخال المباشر أو أسرار Docker أو متغيرات البيئة."""
+        if entry.api_key:
+            return entry.api_key.strip()
         if not entry.api_key_env:
             return "no-key-required"
-        return os.environ.get(entry.api_key_env, "dummy-key")
+
+        # 1. البحث في Docker Secrets (/run/secrets/<api_key_env>)
+        secret_path = Path(f"/run/secrets/{entry.api_key_env.lower()}")
+        if secret_path.is_file():
+            val = secret_path.read_text(encoding="utf-8").strip()
+            if val:
+                return val
+
+        # 2. البحث في المتغيرات البيئية
+        env_val = os.environ.get(entry.api_key_env, "").strip()
+        if env_val:
+            return env_val
+
+        # 3. إذا كان الرابط محلياً (Ollama/vLLM)
+        if "localhost" in entry.base_url or "127.0.0.1" in entry.base_url or "192.168." in entry.base_url:
+            return "local-no-key"
+
+        return "dummy-key"
 
     async def chat(
         self,
@@ -194,3 +215,43 @@ class LLMClient:
         raise RuntimeError(
             f"All LLM chain entries failed for profile '{profile}': {'; '.join(errors)}"
         )
+
+
+async def test_model_connection(
+    base_url: str,
+    model: str,
+    api_key: str | None = None,
+    timeout_s: int = 15,
+) -> dict[str, Any]:
+    """اختبار توافق واستجابة نموذج ذكاء اصطناعي محدد وفحص سرعته وجودة العربية."""
+    effective_key = (api_key or "").strip() or "dummy-key"
+    client = AsyncOpenAI(
+        base_url=base_url.rstrip("/"),
+        api_key=effective_key,
+        timeout=float(timeout_s),
+    )
+    start_t = time.perf_counter()
+    try:
+        resp = await client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "أنت السكرتير الشخصي الذكي (سند). أجب باقتضاب شديد."},
+                {"role": "user", "content": "مرحباً سند، هل أنت متصل وجاهز للعمل؟"},
+            ],
+            max_tokens=60,
+        )
+        latency_ms = int((time.perf_counter() - start_t) * 1000)
+        content = resp.choices[0].message.content or ""
+        return {
+            "ok": True,
+            "latency_ms": latency_ms,
+            "sample_response": content.strip(),
+            "model_reported": resp.model or model,
+        }
+    except Exception as e:
+        latency_ms = int((time.perf_counter() - start_t) * 1000)
+        return {
+            "ok": False,
+            "latency_ms": latency_ms,
+            "error": f"{type(e).__name__}: {e}",
+        }

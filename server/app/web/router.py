@@ -14,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import append_audit_log, verify_audit_chain
 from app.core.crypto import hash_with_pepper
+from app.core.llm.client import LLMClient, test_model_connection
+from app.core.llm.profiles import ModelsConfig, ProfileConfig, load_models_config, save_models_config
 from app.db.base import get_db_session
 from app.db.models import AppPolicy, Device, Event, PairingCode
 
@@ -39,6 +41,36 @@ class WebStatsResponse(BaseModel):
     events_count: int
     audit_chain_valid: bool
     audit_chain_message: str
+
+
+class TestModelRequest(BaseModel):
+    """طلب فحص نموذج الذكاء الاصطناعي."""
+
+    base_url: str
+    model: str
+    api_key: str | None = None
+    timeout_s: int = 15
+
+
+class UpdateModelsRequest(BaseModel):
+    """طلب تحديث نماذج وسياسات السكرتير."""
+
+    profiles: dict[str, Any]
+    policy: dict[str, Any]
+
+
+class WebChatRequest(BaseModel):
+    """طلب محادثة من لوحة الويب."""
+
+    message: str
+
+
+class WebChatResponse(BaseModel):
+    """رد السكرتير في محادثة الويب."""
+
+    reply: str
+    model_used: str
+    latency_ms: int
 
 
 @lru_cache
@@ -129,6 +161,155 @@ async def get_web_devices(
         }
         for d in devices
     ]
+
+
+@router.get("/v1/web/models")
+async def get_web_models() -> dict[str, Any]:
+    """جلب إعدادات النماذج الحالية مع القوالب الجاهزة."""
+    config = load_models_config()
+    dumped = config.model_dump(exclude_none=True)
+
+    for _, p_val in dumped.get("profiles", {}).items():
+        for entry in p_val.get("chain", []):
+            if "api_key" in entry and entry["api_key"]:
+                raw = entry["api_key"]
+                if len(raw) > 8:
+                    entry["api_key_masked"] = raw[:4] + "••••" + raw[-4:]
+                else:
+                    entry["api_key_masked"] = "••••••••"
+            else:
+                entry["api_key_masked"] = ""
+
+    presets = [
+        {
+            "id": "openrouter",
+            "name": "OpenRouter (Claude 3.5 Sonnet / DeepSeek / GPT-4o)",
+            "base_url": "https://openrouter.ai/api/v1",
+            "reasoner_model": "anthropic/claude-3.5-sonnet",
+            "fast_model": "anthropic/claude-3.5-haiku",
+            "requires_key": True,
+        },
+        {
+            "id": "openai",
+            "name": "OpenAI الرسمي (GPT-4o)",
+            "base_url": "https://api.openai.com/v1",
+            "reasoner_model": "gpt-4o",
+            "fast_model": "gpt-4o-mini",
+            "requires_key": True,
+        },
+        {
+            "id": "gemini",
+            "name": "Google Gemini (عبر OpenAI-Compat)",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+            "reasoner_model": "gemini-1.5-pro",
+            "fast_model": "gemini-1.5-flash",
+            "requires_key": True,
+        },
+        {
+            "id": "ollama",
+            "name": "Ollama محلي (بدون إنترنت وبخصوصية 100%)",
+            "base_url": "http://localhost:11434/v1",
+            "reasoner_model": "qwen2.5:7b",
+            "fast_model": "qwen2.5:3b",
+            "requires_key": False,
+        },
+    ]
+
+    return {
+        "config": dumped,
+        "presets": presets,
+    }
+
+
+@router.post("/v1/web/models")
+async def update_web_models(
+    req: UpdateModelsRequest,
+    session: AsyncSession = Depends(get_db_session),
+) -> dict[str, Any]:
+    """تحديث ملف models.yaml وتطبيق الإعدادات على السكرتير فوراً."""
+    try:
+        new_config = ModelsConfig.model_validate(
+            {"profiles": req.profiles, "policy": req.policy}
+        )
+        save_models_config(new_config)
+
+        from app.core.agent.loop import agent_runner
+
+        agent_runner.client = LLMClient(config=new_config)
+
+        await append_audit_log(
+            session,
+            actor="web_dashboard",
+            event="llm_models_config_updated",
+            details={
+                "reasoner_models": [
+                    e.model
+                    for e in new_config.profiles.get("reasoner", ProfileConfig()).chain
+                ],
+                "fast_models": [
+                    e.model
+                    for e in new_config.profiles.get("fast", ProfileConfig()).chain
+                ],
+            },
+        )
+        await session.commit()
+        return {
+            "status": "ok",
+            "message": "تم حفظ الإعدادات وتحديث نماذج السكرتير بنجاح!",
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"فشل التحقق من الإعدادات: {e}",
+        )
+
+
+@router.post("/v1/web/models/test")
+async def test_web_model(req: TestModelRequest) -> dict[str, Any]:
+    """فحص استجابة وسرعة نموذج الذكاء الاصطناعي المحدد قبل الحفظ."""
+    result = await test_model_connection(
+        base_url=req.base_url,
+        model=req.model,
+        api_key=req.api_key,
+        timeout_s=req.timeout_s,
+    )
+    return result
+
+
+@router.post("/v1/web/chat", response_model=WebChatResponse)
+async def web_chat(req: WebChatRequest) -> WebChatResponse:
+    """إرسال رسالة مباشرة للسكرتير من لوحة التحكم لتجربة النموذج الفعلي."""
+    msg = req.message.strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="الرسالة فارغة")
+
+    client = LLMClient()
+    try:
+        resp = await client.chat(
+            profile="reasoner",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "أنت (سند)، السكرتير الشخصي الذكي للمستخدم. "
+                        "تتحدث بلباقة وباللغة العربية الفصحى أو بلهجة سعودية مهذبة. "
+                        "أنت تعمل من الخادم المنزلي للمستخدم لحفظ خصوصيته."
+                    ),
+                },
+                {"role": "user", "content": msg},
+            ],
+        )
+        return WebChatResponse(
+            reply=resp.text,
+            model_used=resp.model_used,
+            latency_ms=resp.latency_ms,
+        )
+    except Exception as e:
+        return WebChatResponse(
+            reply=f"عذراً، حدث خطأ أثناء الاتصال بنموذج الذكاء الاصطناعي: {e}. يرجى التحقق من إعدادات النماذج ومفتاح API في تبويب (إعدادات النماذج).",
+            model_used="none",
+            latency_ms=0,
+        )
 
 
 @router.get("/download/app", response_class=FileResponse)

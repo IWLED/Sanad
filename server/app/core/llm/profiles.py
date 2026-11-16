@@ -14,6 +14,7 @@ class ChainEntry(BaseModel):
     base_url: str = Field(..., description="عنوان نقطة النهاية المتوافقة مع OpenAI")
     model: str = Field(..., description="معرف النموذج لدى المزود")
     api_key_env: str = Field(default="", description="اسم متغير البيئة لمفتاح API")
+    api_key: str | None = Field(default=None, description="مفتاح API المباشر إن وُجد")
     timeout_s: int = Field(default=60, description="المهلة القصوى بالثواني")
     tier: str = Field(default="paid", description="تصنيف الحساب paid | free (R-19)")
 
@@ -83,3 +84,12 @@ def load_models_config(config_path: Path | str | None = None) -> ModelsConfig:
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     return ModelsConfig.model_validate(data)
+
+
+def save_models_config(config: ModelsConfig, config_path: Path | str | None = None) -> None:
+    """حفظ وتحديث ملف config/models.yaml بتنسيق سليم."""
+    path = Path(config_path or settings.llm_profiles_file)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = config.model_dump(exclude_none=True)
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)

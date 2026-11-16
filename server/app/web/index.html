@@ -673,6 +673,9 @@
             <button class="tab-item active" onclick="activateTab('pairing')">
                 <span>📷 ربط الهاتف عبر QR</span>
             </button>
+            <button class="tab-item" onclick="activateTab('models')">
+                <span>⚙️ إعداد نماذج السكرتير (LLM)</span>
+            </button>
             <button class="tab-item" onclick="activateTab('chat')">
                 <span>💬 محادثة سند المباشرة</span>
             </button>
@@ -764,6 +767,136 @@
                             صلاحية الرمز: 10 دقائق من وقت التوليد
                         </div>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- تبويب إعداد نماذج الذكاء الاصطناعي للسكرتير -->
+        <section id="section-models" class="tab-content">
+            <div class="panel-card" style="padding: 32px;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span>⚙️ إعداد نماذج الذكاء الاصطناعي (AI Models & Providers)</span>
+                    </div>
+                    <div class="panel-desc">
+                        قم بتحديد مزودات ونماذج الذكاء الاصطناعي التي تدير عقل السكرتير سند (Section 10.1 في Plan.md). يدعم سند كافة النماذج السحابية (OpenAI, Claude, Gemini, DeepSeek) والنماذج المحلية المستضافة ذاتياً (Ollama, vLLM) لحفظ الخصوصية 100%.
+                    </div>
+                </div>
+
+                <!-- أزرار القوالب الجاهزة السريعة -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">
+                        ⚡ اختيار سريع من النماذج الشائعة (Quick Presets):
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-exec-secondary" onclick="applyPreset('openrouter')">
+                            🤖 OpenRouter (Claude 3.5 Sonnet)
+                        </button>
+                        <button class="btn-exec-secondary" onclick="applyPreset('openai')">
+                            ⚡ OpenAI (GPT-4o)
+                        </button>
+                        <button class="btn-exec-secondary" onclick="applyPreset('gemini')">
+                            💎 Google Gemini (1.5 Pro)
+                        </button>
+                        <button class="btn-exec-secondary" onclick="applyPreset('ollama')">
+                            🏠 Ollama محلي (Qwen 2.5 - خصوصية تامة)
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-bottom: 28px;">
+                    <!-- 1. نموذج السكرتير الرئيسي Reasoner -->
+                    <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 22px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h4 style="margin: 0; font-size: 1.05rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                                <span>🧠 النموذج الرئيسي (Reasoner Agent)</span>
+                            </h4>
+                            <span style="font-size: 0.75rem; background: var(--accent-primary-container); color: var(--accent-primary); padding: 3px 8px; border-radius: 4px; font-weight: 700;">Model A</span>
+                        </div>
+                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px;">
+                            المسؤول عن التفكير، المحادثة، اتخاذ القرارات، وصياغة الردود واستدعاء الأدوات.
+                        </p>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">عنوان الخادم (Base URL):</label>
+                            <input type="text" id="model-reasoner-url" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="https://openrouter.ai/api/v1">
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">اسم / معرف النموذج (Model ID):</label>
+                            <input type="text" id="model-reasoner-id" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="anthropic/claude-3.5-sonnet">
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">مفتاح الـ API (API Key):</label>
+                            <input type="password" id="model-reasoner-key" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="sk-...">
+                        </div>
+
+                        <button class="btn-exec-secondary" style="width: 100%; justify-content: center;" onclick="testSingleModel('reasoner')">
+                            🧪 فحص استجابة النموذج الرئيسي
+                        </button>
+                        <div id="test-result-reasoner" style="margin-top: 10px; font-size: 0.82rem; display: none;"></div>
+                    </div>
+
+                    <!-- 2. النموذج السريع Fast Summarizer -->
+                    <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 22px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h4 style="margin: 0; font-size: 1.05rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                                <span>⚡ النموذج السريع (Fast Classifier & Digest)</span>
+                            </h4>
+                            <span style="font-size: 0.75rem; background: var(--bg-surface-elevated); color: var(--text-secondary); padding: 3px 8px; border-radius: 4px; font-weight: 700;">Model B</span>
+                        </div>
+                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px;">
+                            المسؤول عن تلخيص المحادثات الطويلة بسرعة وتصنيف أولوية الإشعارات الواردة.
+                        </p>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">عنوان الخادم (Base URL):</label>
+                            <input type="text" id="model-fast-url" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="https://api.openai.com/v1">
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">اسم / معرف النموذج (Model ID):</label>
+                            <input type="text" id="model-fast-id" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="gpt-4o-mini">
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">مفتاح الـ API (API Key):</label>
+                            <input type="password" id="model-fast-key" class="chat-input-field" style="width: 100%; border-radius: var(--radius-sm);" placeholder="اتركه فارغاً لاستخدام مفتاح النموذج الرئيسي">
+                        </div>
+
+                        <button class="btn-exec-secondary" style="width: 100%; justify-content: center;" onclick="testSingleModel('fast')">
+                            🧪 فحص استجابة النموذج السريع
+                        </button>
+                        <div id="test-result-fast" style="margin-top: 10px; font-size: 0.82rem; display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- إعدادات الخصوصية والسياسات -->
+                <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 22px; margin-bottom: 24px;">
+                    <h4 style="margin: 0 0 14px 0; font-size: 1rem; color: var(--text-primary);">🛡️ سياسات الأمان والميزانية اليومية (Security Policies)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; cursor: pointer;">
+                            <input type="checkbox" id="policy-forbid-free" checked>
+                            <span>حظر المزودات والطبقات المجانية لضمان عدم تدريب النماذج على بياناتك الشخصية (R-19).</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; cursor: pointer;">
+                            <input type="checkbox" id="policy-allow-cloud-sensitive">
+                            <span>السماح بمعالجة البيانات المصنفة حساسة عبر السحابة (غير موصى به، الافتراضي حظر السحابة R-08).</span>
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+                            <span style="font-size: 0.88rem; color: var(--text-secondary);">الميزانية اليومية للتوكنز (Daily Token Budget):</span>
+                            <input type="number" id="policy-budget" class="chat-input-field" style="width: 180px; padding: 6px 12px; border-radius: 4px;" value="2000000">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- شريط الحفظ النهائي -->
+                <div style="display: flex; gap: 14px; align-items: center;">
+                    <button class="btn-exec-primary" onclick="saveModelsConfig()">
+                        <span>💾 حفظ الإعدادات وتطبيقها على السكرتير فوراً</span>
+                    </button>
+                    <span id="save-status-msg" style="font-size: 0.9rem; font-weight: 700;"></span>
                 </div>
             </div>
         </section>
@@ -890,6 +1023,7 @@
             if (targetSection) targetSection.classList.add('active');
 
             if (tabId === 'devices') refreshDevicesList();
+            if (tabId === 'models') loadModelsSettings();
         }
 
         async function fetchSystemStats() {
@@ -985,7 +1119,175 @@
             if (e.key === 'Enter') submitChatMessage();
         }
 
-        function submitChatMessage() {
+        let activeModelsConfig = null;
+        let activePresets = [];
+
+        async function loadModelsSettings() {
+            try {
+                const res = await fetch('/v1/web/models');
+                if (res.ok) {
+                    const data = await res.json();
+                    activeModelsConfig = data.config;
+                    activePresets = data.presets;
+
+                    const reasoner = activeModelsConfig?.profiles?.reasoner?.chain?.[0] || {};
+                    document.getElementById('model-reasoner-url').value = reasoner.base_url || 'https://openrouter.ai/api/v1';
+                    document.getElementById('model-reasoner-id').value = reasoner.model || 'anthropic/claude-3.5-sonnet';
+                    if (reasoner.api_key_masked) {
+                        document.getElementById('model-reasoner-key').placeholder = 'محفوظ حالياً (' + reasoner.api_key_masked + ')';
+                    }
+
+                    const fast = activeModelsConfig?.profiles?.fast?.chain?.[0] || {};
+                    document.getElementById('model-fast-url').value = fast.base_url || 'https://api.openai.com/v1';
+                    document.getElementById('model-fast-id').value = fast.model || 'gpt-4o-mini';
+                    if (fast.api_key_masked) {
+                        document.getElementById('model-fast-key').placeholder = 'محفوظ حالياً (' + fast.api_key_masked + ')';
+                    }
+
+                    const policy = activeModelsConfig?.policy || {};
+                    document.getElementById('policy-forbid-free').checked = policy.forbid_free_tier !== false;
+                    document.getElementById('policy-allow-cloud-sensitive').checked = !!policy.allow_cloud_for_sensitive;
+                    document.getElementById('policy-budget').value = policy.daily_token_budget || 2000000;
+                }
+            } catch (err) {
+                console.warn('Failed to load models:', err);
+            }
+        }
+
+        function applyPreset(presetId) {
+            const p = activePresets.find(x => x.id === presetId);
+            if (!p) return;
+
+            document.getElementById('model-reasoner-url').value = p.base_url;
+            document.getElementById('model-reasoner-id').value = p.reasoner_model;
+            document.getElementById('model-fast-url').value = p.base_url;
+            document.getElementById('model-fast-id').value = p.fast_model;
+
+            if (!p.requires_key) {
+                document.getElementById('model-reasoner-key').value = '';
+                document.getElementById('model-reasoner-key').placeholder = 'لا يتطلب مفتاح API (محلي)';
+                document.getElementById('model-fast-key').value = '';
+                document.getElementById('model-fast-key').placeholder = 'لا يتطلب مفتاح API (محلي)';
+            } else {
+                document.getElementById('model-reasoner-key').placeholder = 'أدخل مفتاح API الخاص بك';
+                document.getElementById('model-fast-key').placeholder = 'اتركه فارغاً لاستخدام نفس المفتاح أعلاه';
+            }
+            alert('تم تطبيق قالب ' + p.name + ' على الحقول بنجاح! تذكر كتابة مفتاح API إن وُجد ثم اضغط حفظ الإعدادات.');
+        }
+
+        async function testSingleModel(profile) {
+            const resultBox = document.getElementById('test-result-' + profile);
+            resultBox.style.display = 'block';
+            resultBox.style.color = 'var(--text-secondary)';
+            resultBox.innerText = '⏳ جارِ الاتصال بالنموذج وفحص الاستجابة...';
+
+            const urlInput = document.getElementById('model-' + profile + '-url').value.trim();
+            const idInput = document.getElementById('model-' + profile + '-id').value.trim();
+            const keyInput = document.getElementById('model-' + profile + '-key').value.trim();
+
+            try {
+                const res = await fetch('/v1/web/models/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        base_url: urlInput,
+                        model: idInput,
+                        api_key: keyInput || undefined,
+                        timeout_s: 20
+                    })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    resultBox.style.color = 'var(--color-success)';
+                    resultBox.innerHTML = `✅ <strong>نجح الاتصال بالنموذج!</strong> (زمن الاستجابة: ${data.latency_ms}ms)<br>الرد التجريبي: "${data.sample_response}"`;
+                } else {
+                    resultBox.style.color = '#EF4444';
+                    resultBox.innerHTML = `❌ <strong>فشل الاتصال:</strong> ${data.error}`;
+                }
+            } catch (err) {
+                resultBox.style.color = '#EF4444';
+                resultBox.innerText = '❌ خطأ في الاتصال: ' + err.message;
+            }
+        }
+
+        async function saveModelsConfig() {
+            const statusMsg = document.getElementById('save-status-msg');
+            statusMsg.style.color = 'var(--text-secondary)';
+            statusMsg.innerText = 'جارِ الحفظ...';
+
+            const reasonerUrl = document.getElementById('model-reasoner-url').value.trim();
+            const reasonerId = document.getElementById('model-reasoner-id').value.trim();
+            const reasonerKey = document.getElementById('model-reasoner-key').value.trim();
+
+            const fastUrl = document.getElementById('model-fast-url').value.trim();
+            const fastId = document.getElementById('model-fast-id').value.trim();
+            const fastKey = document.getElementById('model-fast-key').value.trim() || reasonerKey;
+
+            const forbidFree = document.getElementById('policy-forbid-free').checked;
+            const allowCloud = document.getElementById('policy-allow-cloud-sensitive').checked;
+            const budget = parseInt(document.getElementById('policy-budget').value) || 2000000;
+
+            const payload = {
+                profiles: {
+                    reasoner: {
+                        chain: [
+                            {
+                                base_url: reasonerUrl,
+                                model: reasonerId,
+                                api_key: reasonerKey || undefined,
+                                api_key_env: reasonerKey ? "" : "LLM_KEY_A",
+                                timeout_s: 60,
+                                tier: "paid"
+                            }
+                        ],
+                        max_context_tokens: 128000,
+                        tools: true,
+                        cloud: !reasonerUrl.includes('localhost') && !reasonerUrl.includes('127.0.0.1')
+                    },
+                    fast: {
+                        chain: [
+                            {
+                                base_url: fastUrl,
+                                model: fastId,
+                                api_key: fastKey || undefined,
+                                api_key_env: fastKey ? "" : "LLM_KEY_A",
+                                timeout_s: 30,
+                                tier: "paid"
+                            }
+                        ],
+                        tools: false,
+                        cloud: !fastUrl.includes('localhost') && !fastUrl.includes('127.0.0.1')
+                    }
+                },
+                policy: {
+                    forbid_free_tier: forbidFree,
+                    allow_cloud_for_sensitive: allowCloud,
+                    daily_token_budget: budget
+                }
+            };
+
+            try {
+                const res = await fetch('/v1/web/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    statusMsg.style.color = 'var(--color-success)';
+                    statusMsg.innerText = '✅ تم حفظ وتطبيق النماذج بنجاح على السكرتير سند!';
+                    setTimeout(() => { statusMsg.innerText = ''; }, 4000);
+                } else {
+                    statusMsg.style.color = '#EF4444';
+                    statusMsg.innerText = '❌ فشل الحفظ: ' + (data.detail || 'خطأ غير معروف');
+                }
+            } catch (err) {
+                statusMsg.style.color = '#EF4444';
+                statusMsg.innerText = '❌ خطأ في الاتصال: ' + err.message;
+            }
+        }
+
+        async function submitChatMessage() {
             const input = document.getElementById('chat-query-input');
             const text = input.value.trim();
             if (!text) return;
@@ -999,21 +1301,31 @@
 
             input.value = '';
 
-            setTimeout(() => {
-                const botMsg = document.createElement('div');
-                botMsg.className = 'chat-bubble bubble-bot';
-                botMsg.innerText = 'أهلاً بك! لقد استلمت طلبك وجارِ معالجته محلياً. لضمان أفضل تجربة مع الصلاحيات والردود الفورية، استخدم تطبيق الجوال المقترن أو اسألني عن أي مهمة مكتبية.';
-                stream.appendChild(botMsg);
-                stream.scrollTop = stream.scrollHeight;
-            }, 500);
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'chat-bubble bubble-bot';
+            loadingMsg.innerText = '⏳ جارِ التفكير والمعالجة من خلال النموذج...';
+            stream.appendChild(loadingMsg);
+            stream.scrollTop = stream.scrollHeight;
+
+            try {
+                const res = await fetch('/v1/web/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await res.json();
+                loadingMsg.innerHTML = data.reply + `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">(النموذج: ${data.model_used} • ${data.latency_ms}ms)</div>`;
+            } catch (err) {
+                loadingMsg.innerText = 'تعذر الاتصال بالسكرتير: ' + err.message;
+            }
 
             stream.scrollTop = stream.scrollHeight;
         }
 
         window.onload = () => {
             fetchSystemStats();
-            // توليد رمز اقتران أولي تلقائياً للتسهيل الفوري على المستخدم!
             requestNewPairingCode();
+            loadModelsSettings();
         };
     </script>
 </body>
