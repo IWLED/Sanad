@@ -23,6 +23,7 @@ import app.secretary.core.network.SessionManager
 import app.secretary.gateway.RemoteInputGateway
 import app.secretary.outbox.OutboxSyncWorker
 import app.secretary.ui.ChatScreen
+import app.secretary.ui.PoliciesScreen
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -45,6 +46,7 @@ class MainActivity : FragmentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    var showPoliciesScreen by remember { mutableStateOf(false) }
                     val wsClient = activeWsClient
                     if (wsClient != null) {
                         ChatScreen(
@@ -54,6 +56,14 @@ class MainActivity : FragmentActivity() {
                                 execCommandsJob?.cancel()
                                 activeWsClient = null
                             }
+                        )
+                    } else if (showPoliciesScreen) {
+                        val serverUrl = SessionManager.getServerUrl(this)
+                        val token = SessionManager.getAccessToken(this) ?: ""
+                        PoliciesScreen(
+                            serverUrl = serverUrl,
+                            token = token,
+                            onBack = { showPoliciesScreen = false }
                         )
                     } else {
                         HomeScreen(
@@ -70,6 +80,9 @@ class MainActivity : FragmentActivity() {
                             },
                             onSyncContacts = {
                                 performContactsSync()
+                            },
+                            onOpenPolicies = {
+                                showPoliciesScreen = true
                             }
                         )
                     }
@@ -177,7 +190,8 @@ fun HomeScreen(
     onOpenSpikes: () -> Unit,
     onPairAndConnect: (serverUrl: String, code: String) -> Unit,
     onReconnectSaved: () -> Unit,
-    onSyncContacts: () -> Unit
+    onSyncContacts: () -> Unit,
+    onOpenPolicies: () -> Unit
 ) {
     var serverUrl by remember { mutableStateOf(savedServerUrl) }
     var pairingCode by remember { mutableStateOf("") }
@@ -230,6 +244,13 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("مزامنة جهات الاتصال مع الخادم")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = onOpenPolicies,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("إعدادات سياسات التطبيقات والردود")
                         }
                     }
                 }

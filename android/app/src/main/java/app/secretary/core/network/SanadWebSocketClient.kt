@@ -82,11 +82,23 @@ sealed interface ServerWsEvent {
         val args: JSONObject
     ) : ServerWsEvent
     data class Error(val code: String, val message: String) : ServerWsEvent
+    data class BriefingReady(
+        val briefingId: String,
+        val kind: String,
+        val title: String,
+        val renderedText: String
+    ) : ServerWsEvent
+    data class ReminderAlert(
+        val jobId: String,
+        val title: String,
+        val notes: String?,
+        val dueTime: String
+    ) : ServerWsEvent
 }
 
 class SanadWebSocketClient(
-    private val serverUrl: String,
-    private val token: String,
+    val serverUrl: String,
+    val token: String,
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
         .pingInterval(25, TimeUnit.SECONDS)
         .build()
@@ -369,6 +381,20 @@ class SanadWebSocketClient(
                     val code = payload.optString("code", "UNKNOWN_ERROR")
                     val message = payload.optString("message", "حدث خطأ غير متوقع")
                     _events.emit(ServerWsEvent.Error(code, message))
+                }
+                "briefing_ready" -> {
+                    val briefingId = payload.optString("id", "")
+                    val kind = payload.optString("kind", "morning")
+                    val renderedText = payload.optString("rendered_text", "")
+                    val title = if (kind == "morning") "🌅 الإيجاز الصباحي" else "🌙 ملخص المساء"
+                    _events.emit(ServerWsEvent.BriefingReady(briefingId, kind, title, renderedText))
+                }
+                "reminder_alert" -> {
+                    val jobId = payload.optString("job_id", "")
+                    val title = payload.optString("title", "تذكير")
+                    val notes = if (payload.has("notes") && !payload.isNull("notes")) payload.getString("notes") else null
+                    val dueTime = payload.optString("due_time", "")
+                    _events.emit(ServerWsEvent.ReminderAlert(jobId, title, notes, dueTime))
                 }
             }
         }

@@ -1,6 +1,10 @@
 package app.secretary.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.background
@@ -21,15 +25,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import app.secretary.core.audio.AudioRecordManager
 import app.secretary.core.network.ConnectionStatus
 import app.secretary.core.network.SanadWebSocketClient
 import app.secretary.core.network.ServerWsEvent
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 sealed interface ChatItem {
     data class UserMessage(val id: String, val text: String, val ts: String) : ChatItem
     data class AssistantMessage(val id: String, val text: String, val ts: String) : ChatItem
     data class HitlAction(val request: ServerWsEvent.ActionRequest, val status: String? = null) : ChatItem
+    data class BriefingAttachment(val briefingId: String, val title: String, val renderedText: String, val isAcked: Boolean = false) : ChatItem
+    data class FileAttachment(val fileId: String, val filename: String, val sizeBytes: Long, val mimeType: String) : ChatItem
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,9 +48,28 @@ fun ChatScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val connectionStatus by wsClient.connectionStatus.collectAsState()
     var inputText by remember { mutableStateOf("") }
     val chatItems = remember { mutableStateListOf<ChatItem>() }
+
+    val audioManager = remember { AudioRecordManager(context) }
+    var isRecording by remember { mutableStateOf(false) }
+    var isTranscribing by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            val started = audioManager.startRecording()
+            isRecording = started
+            if (!started) {
+                Toast.makeText(context, "تعذر بدء التسجيل الصوتي", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "يلزم منح إذن الميكروفون للتسجيل الصوتي", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // الاستماع لأحداث WebSocket القادمة من الخادم
     LaunchedEffect(wsClient) {
@@ -53,6 +80,52 @@ fun ChatScreen(
                         ChatItem.AssistantMessage(
                             id = System.currentTimeMillis().toString(),
                             text = event.text,
+                            ts = "الآن"
+                        )
+                    )
+
+                    // كشف إن كان الرد يحتوي على رابط ملف مولد
+                    val fileRegex = Regex("""/v1/files/(fil_[a-f0-9]+)/download""")
+                    val match = fileRegex.find(event.text)
+                    if (match != null) {
+                        val fileId = match.groupValues[1]
+                        val filename = when {
+                            event.text.contains(".docx") -> "$fileId.docx"
+                            event.text.contains(".xlsx") -> "$fileId.xlsx"
+                            event.text.contains(".pptx") -> "$fileId.pptx"
+                            else -> "$fileId.bin"
+                        }
+                        val mime = when {
+                            filename.endsWith(".docx") -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            filename.endsWith(".xlsx") -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            filename.endsWith(".pptx") -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                            else -> "application/octet-stream"
+                        }
+                        chatItems.add(
+                            ChatItem.FileAttachment(
+                                fileId = fileId,
+                                filename = filename,
+                                sizeBytes = 15000L,
+                                mimeType = mime
+                            )
+                        )
+                    }
+                }
+                is ServerWsEvent.BriefingReady -> {
+                    chatItems.add(
+                        ChatItem.BriefingAttachment(
+                            briefingId = event.briefingId,
+                            title = event.title,
+                            renderedText = event.renderedText,
+                            isAcked = false
+                        )
+                    )
+                }
+                is ServerWsEvent.ReminderAlert -> {
+                    chatItems.add(
+                        ChatItem.AssistantMessage(
+                            id = System.currentTimeMillis().toString(),
+                            text = "🔔 تذكير: ${event.title}\n${event.notes ?: ""}",
                             ts = "الآن"
                         )
                     )
@@ -145,7 +218,7 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // 1. قائمة الرسائل وبطاقات HITL
+            // 1. قائمة الرسائل وبطاقات HITL والإيجاز والملفات
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -234,11 +307,63 @@ fun ChatScreen(
                                 }
                             )
                         }
+                        is ChatItem.BriefingAttachment -> {
+                            BriefingCard(
+                                briefingId = item.briefingId,
+                                title = item.title,
+                                renderedText = item.renderedText,
+                                serverUrl = wsClient.serverUrl,
+                                token = wsClient.token,
+                                initialAcked = item.isAcked
+                            )
+                        }
+                        is ChatItem.FileAttachment -> {
+                            FileBubble(
+                                fileId = item.fileId,
+                                filename = item.filename,
+                                sizeBytes = item.sizeBytes,
+                                mimeType = item.mimeType,
+                                serverUrl = wsClient.serverUrl,
+                                token = wsClient.token
+                            )
+                        }
                     }
                 }
             }
 
-            // 2. شريط إدخال الرسالة والإرسال
+            // شريط حالة التسجيل أو التفريغ الصوتي
+            if (isRecording) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFD32F2F).copy(alpha = 0.15f))
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🔴 جاري التسجيل الصوتي... انقر على زر الميكروفون للإرسال والتفريغ",
+                        color = Color(0xFFD32F2F),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else if (isTranscribing) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "⏳ جاري تفريغ الصوت وتحويله لنص عربي عبر STT...",
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            // 2. شريط إدخال الرسالة والإرسال وزر الميكروفون الصوتي
             HorizontalDivider()
             Row(
                 modifier = Modifier
@@ -246,6 +371,59 @@ fun ChatScreen(
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // زر التسجيل الصوتي STT (Section 11.4)
+                IconButton(
+                    onClick = {
+                        if (!isRecording) {
+                            val permissionCheck = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.RECORD_AUDIO
+                            )
+                            if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                                isRecording = audioManager.startRecording()
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        } else {
+                            val audioFile = audioManager.stopRecording()
+                            isRecording = false
+                            if (audioFile != null && audioFile.exists()) {
+                                isTranscribing = true
+                                coroutineScope.launch {
+                                    val res = audioManager.uploadAndTranscribe(
+                                        serverUrl = wsClient.serverUrl,
+                                        token = wsClient.token,
+                                        audioFile = audioFile
+                                    )
+                                    isTranscribing = false
+                                    res.onSuccess { transcribed ->
+                                        if (transcribed.isNotBlank()) {
+                                            chatItems.add(
+                                                ChatItem.UserMessage(
+                                                    id = System.currentTimeMillis().toString(),
+                                                    text = "🎤 $transcribed",
+                                                    ts = "الآن"
+                                                )
+                                            )
+                                            wsClient.sendUserMessage(transcribed)
+                                        }
+                                    }.onFailure {
+                                        Toast.makeText(context, "فشل تفريغ الصوت: ${it.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Text(
+                        text = if (isRecording) "⏹" else "🎙",
+                        fontSize = 22.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
