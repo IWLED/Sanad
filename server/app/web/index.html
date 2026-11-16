@@ -1,697 +1,954 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>سند (Sanad) — السكرتير الشخصي الذكي</title>
     <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/open-webui.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --md-sys-color-primary: #1E3A5F;
-            --md-sys-color-on-primary: #FFFFFF;
-            --md-sys-color-primary-container: #D6E3F8;
-            --md-sys-color-on-primary-container: #0D2847;
-            --md-sys-color-secondary: #4A5F78;
-            --md-sys-color-surface: #FFFFFF;
-            --md-sys-color-on-surface: #191C20;
-            --md-sys-color-surface-variant: #EBEFF5;
-            --md-sys-color-on-surface-variant: #44474E;
-            --md-sys-color-background: #F8F9FC;
-            --md-sys-color-on-background: #191C20;
-            --md-sys-color-outline: #C4CBD4;
-            --md-sys-color-outline-variant: #E0E4EB;
-            --md-sys-color-success: #2E7D32;
-            --md-sys-color-warning: #D97706;
-            --md-sys-color-error: #DC2626;
-            --md-shape-corner-small: 8px;
-            --md-shape-corner-medium: 14px;
-            --md-shape-corner-large: 20px;
-            --md-shape-corner-full: 9999px;
-            --md-sys-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Cairo', 'Noto Sans Arabic', sans-serif;
+            /* درجات السمة الداكنة التنفيذية الرسمية */
+            --bg-base: #0B0F19;
+            --bg-surface: #141C2E;
+            --bg-surface-elevated: #1B263E;
+            --bg-surface-card: rgba(27, 38, 62, 0.7);
+            --bg-subtle: #24324D;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-color-focus: #3B82F6;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --accent-primary: #3B82F6;
+            --accent-primary-hover: #2563EB;
+            --accent-primary-container: rgba(59, 130, 246, 0.15);
+            --color-success: #10B981;
+            --color-success-bg: rgba(16, 185, 129, 0.12);
+            --color-warning: #F59E0B;
+            --color-warning-bg: rgba(245, 158, 11, 0.12);
+            --color-error: #EF4444;
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-full: 9999px;
+            --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+            --font-family: 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        [data-theme="light"] {
+            /* درجات السمة الفاتحة الهادئة */
+            --bg-base: #F8FAFC;
+            --bg-surface: #FFFFFF;
+            --bg-surface-elevated: #F1F5F9;
+            --bg-surface-card: #FFFFFF;
+            --bg-subtle: #E2E8F0;
+            --border-color: #E2E8F0;
+            --border-color-focus: #2563EB;
+            --text-primary: #0F172A;
+            --text-secondary: #475569;
+            --text-muted: #94A3B8;
+            --accent-primary: #1E3A5F;
+            --accent-primary-hover: #0D2847;
+            --accent-primary-container: #D6E3F8;
+            --color-success: #059669;
+            --color-success-bg: #ECFDF5;
+            --color-warning: #D97706;
+            --color-warning-bg: #FFFBEB;
+            --color-error: #DC2626;
+            --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.06);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: var(--md-sys-font);
+            font-family: var(--font-family);
+            -webkit-font-smoothing: antialiased;
         }
 
         body {
-            background-color: var(--md-sys-color-background);
-            color: var(--md-sys-color-on-background);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* شريط العنوان العلوي M3 TopAppBar */
-        header.top-app-bar {
-            background-color: var(--md-sys-color-surface);
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
-            padding: 12px 28px;
+        /* رأس الصفحة التنفيذي الموحد */
+        header.top-nav {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            padding: 14px 32px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 50;
+            backdrop-filter: blur(16px);
         }
 
-        .brand-container {
+        .brand-box {
             display: flex;
             align-items: center;
             gap: 14px;
         }
 
-        .brand-logo {
+        .brand-badge {
             width: 44px;
             height: 44px;
-            border-radius: var(--md-shape-corner-small);
-            background-color: var(--md-sys-color-primary-container);
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, #1E3A5F 0%, #2B4C7E 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--md-sys-color-primary);
-            font-size: 24px;
-            font-weight: bold;
+            color: #FFFFFF;
+            font-size: 20px;
+            font-weight: 800;
+            box-shadow: 0 2px 8px rgba(30, 58, 95, 0.4);
         }
 
-        .brand-text h1 {
+        .brand-info h1 {
             font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--md-sys-color-primary);
-            line-height: 1.3;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            color: var(--text-primary);
         }
 
-        .brand-text p {
-            font-size: 0.82rem;
-            color: var(--md-sys-color-on-surface-variant);
+        .brand-info p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
         }
 
-        .header-actions {
+        .nav-actions {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .status-badge {
+        .hub-pill {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: var(--md-shape-corner-full);
-            background-color: rgba(46, 125, 50, 0.1);
-            color: var(--md-sys-color-success);
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: var(--radius-full);
+            background: var(--color-success-bg);
+            color: var(--color-success);
             font-size: 0.82rem;
-            font-weight: 600;
+            font-weight: 700;
+            border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
-        .status-dot {
+        .live-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background-color: var(--md-sys-color-success);
+            background: var(--color-success);
+            box-shadow: 0 0 10px var(--color-success);
         }
 
-        .btn-docs {
+        .btn-theme-toggle {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .btn-theme-toggle:hover {
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .btn-api-docs {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 7px 14px;
-            border-radius: var(--md-shape-corner-small);
-            border: 1px solid var(--md-sys-color-outline);
-            background-color: transparent;
-            color: var(--md-sys-color-secondary);
-            font-size: 0.84rem;
+            padding: 7px 16px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
             font-weight: 600;
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
         }
 
-        .btn-docs:hover {
-            background-color: var(--md-sys-color-surface-variant);
-            color: var(--md-sys-color-primary);
+        .btn-api-docs:hover {
+            color: var(--text-primary);
+            border-color: var(--text-muted);
         }
 
-        /* تخطيط الصفحة */
-        main.container {
-            max-width: 1200px;
-            margin: 24px auto;
-            padding: 0 20px;
+        /* المحتوى الرئيسي */
+        main.main-wrapper {
+            max-width: 1180px;
+            margin: 28px auto;
+            padding: 0 24px;
             width: 100%;
             flex: 1;
         }
 
-        /* شريط التبويبات M3 Tabs */
-        .tabs-nav {
+        /* شريط التبويبات التنفيذي */
+        .tabs-header {
             display: flex;
-            gap: 8px;
-            border-bottom: 2px solid var(--md-sys-color-outline-variant);
+            gap: 6px;
+            background: var(--bg-surface);
+            padding: 6px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
             margin-bottom: 24px;
             overflow-x: auto;
         }
 
-        .tab-btn {
-            padding: 12px 20px;
-            background: none;
+        .tab-item {
+            flex: 1;
+            min-width: 180px;
+            padding: 10px 18px;
+            background: transparent;
             border: none;
-            border-bottom: 3px solid transparent;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--md-sys-color-on-surface-variant);
+            border-radius: var(--radius-sm);
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: -2px;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             white-space: nowrap;
         }
 
-        .tab-btn:hover {
-            color: var(--md-sys-color-primary);
+        .tab-item:hover {
+            color: var(--text-primary);
         }
 
-        .tab-btn.active {
-            color: var(--md-sys-color-primary);
-            border-bottom-color: var(--md-sys-color-primary);
+        .tab-item.active {
+            background: var(--accent-primary);
+            color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
-        /* أقسام المحتوى */
-        .tab-pane {
+        /* الأقسام التفاعلية */
+        .tab-content {
             display: none;
         }
 
-        .tab-pane.active {
+        .tab-content.active {
             display: block;
-            animation: fadeIn 0.2s ease;
+            animation: slideUp 0.25s ease;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* بطاقات M3 Cards */
-        .card {
-            background: var(--md-sys-color-surface);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-corner-medium);
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        /* البطاقات المتطورة */
+        .panel-card {
+            background: var(--bg-surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(8px);
         }
 
-        .card-title {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--md-sys-color-on-surface);
-            margin-bottom: 8px;
+        .panel-header {
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            margin-bottom: 6px;
         }
 
-        .card-subtitle {
-            font-size: 0.88rem;
-            color: var(--md-sys-color-on-surface-variant);
-            margin-bottom: 20px;
+        .panel-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
         }
 
-        /* شبكة الإحصائيات */
-        .stats-grid {
+        /* شبكة الإحصائيات الذكية */
+        .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
         }
 
-        .stat-card {
-            background: var(--md-sys-color-surface);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-corner-medium);
-            padding: 18px;
+        .metric-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
             display: flex;
             align-items: center;
             gap: 16px;
+            box-shadow: var(--shadow-card);
         }
 
-        .stat-icon {
+        .metric-icon {
             width: 48px;
             height: 48px;
-            border-radius: var(--md-shape-corner-small);
-            background: var(--md-sys-color-primary-container);
-            color: var(--md-sys-color-primary);
+            border-radius: var(--radius-md);
+            background: var(--accent-primary-container);
+            color: var(--accent-primary);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 22px;
+            flex-shrink: 0;
         }
 
-        .stat-content .stat-value {
-            font-size: 1.5rem;
+        [data-theme="dark"] .metric-icon {
+            color: #60A5FA;
+        }
+
+        .metric-data .metric-value {
+            font-size: 1.6rem;
             font-weight: 800;
-            color: var(--md-sys-color-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.2;
         }
 
-        .stat-content .stat-label {
+        .metric-data .metric-label {
             font-size: 0.82rem;
-            color: var(--md-sys-color-on-surface-variant);
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-top: 2px;
         }
 
-        /* منطقة توليد رمز الاقتران */
-        .pairing-box {
+        /* منطقة الاقتران ورمز QR التنفيذي */
+        .pairing-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1.1fr 1fr;
             gap: 28px;
             align-items: center;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow-card);
         }
 
-        @media (max-width: 768px) {
-            .pairing-box {
+        @media (max-width: 860px) {
+            .pairing-container {
                 grid-template-columns: 1fr;
             }
         }
 
-        .code-display {
-            background: var(--md-sys-color-surface-variant);
-            border: 2px dashed var(--md-sys-color-outline);
-            border-radius: var(--md-shape-corner-medium);
+        .guide-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .step-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .step-text h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .step-text p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* بطاقة عرض الكود */
+        .code-vault {
+            background: var(--bg-surface-elevated);
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
             padding: 24px;
             text-align: center;
+            margin: 20px 0;
         }
 
-        .code-text {
+        .segmented-code {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 14px 0;
+            direction: ltr;
+        }
+
+        .code-chunk {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
             font-family: monospace;
-            font-size: 1.6rem;
+            font-size: 1.4rem;
             font-weight: 800;
-            letter-spacing: 2px;
-            color: var(--md-sys-color-primary);
-            margin: 12px 0;
-            word-break: break-all;
+            letter-spacing: 1px;
+            color: var(--accent-primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .qr-canvas-container {
+        [data-theme="dark"] .code-chunk {
+            color: #93C5FD;
+            background: #0F172A;
+            border-color: #334155;
+        }
+
+        .qr-hero-card {
+            background: #FFFFFF;
+            border: 2px solid #E2E8F0;
+            border-radius: var(--radius-lg);
+            padding: 24px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            background: #FFFFFF;
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-corner-medium);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
         }
 
-        /* الأزرار M3 Buttons */
-        .btn-primary {
-            background-color: var(--md-sys-color-primary);
-            color: var(--md-sys-color-on-primary);
+        .qr-placeholder {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* الأزرار التنفيذية */
+        .btn-exec-primary {
+            background: var(--accent-primary);
+            color: #FFFFFF;
             border: none;
-            padding: 12px 24px;
-            border-radius: var(--md-shape-corner-small);
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
             font-size: 0.95rem;
-            font-weight: 600;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
+        }
+
+        .btn-exec-primary:hover {
+            opacity: 0.94;
+            transform: translateY(-1px);
+        }
+
+        .btn-exec-secondary {
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
             gap: 8px;
         }
 
-        .btn-primary:hover {
-            opacity: 0.92;
+        .btn-exec-secondary:hover {
+            background: var(--bg-subtle);
         }
 
-        .btn-secondary {
-            background-color: var(--md-sys-color-surface-variant);
-            color: var(--md-sys-color-on-surface-variant);
-            border: none;
-            padding: 10px 18px;
-            border-radius: var(--md-shape-corner-small);
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-secondary:hover {
-            background-color: var(--md-sys-color-outline-variant);
-        }
-
-        /* شاشة المحادثة المباشرة في الويب */
-        .chat-container {
+        /* المحادثة الفورية مع سند */
+        .web-chat-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
             display: flex;
             flex-direction: column;
-            height: 520px;
-            background: var(--md-sys-color-surface);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: var(--md-shape-corner-medium);
+            height: 540px;
             overflow: hidden;
+            box-shadow: var(--shadow-card);
         }
 
-        .chat-messages {
+        .chat-stream {
             flex: 1;
-            padding: 20px;
+            padding: 24px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
 
-        .msg-bubble {
-            max-width: 70%;
-            padding: 12px 18px;
-            border-radius: var(--md-shape-corner-medium);
+        .chat-bubble {
+            max-width: 72%;
+            padding: 14px 20px;
+            border-radius: var(--radius-lg);
             font-size: 0.95rem;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
-        .msg-user {
+        .bubble-user {
             align-self: flex-start;
-            background: var(--md-sys-color-primary);
-            color: var(--md-sys-color-on-primary);
+            background: var(--accent-primary);
+            color: #FFFFFF;
             border-bottom-right-radius: 4px;
         }
 
-        .msg-assistant {
+        .bubble-bot {
             align-self: flex-end;
-            background: var(--md-sys-color-surface-variant);
-            color: var(--md-sys-color-on-surface);
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
             border-bottom-left-radius: 4px;
+            border: 1px solid var(--border-color);
         }
 
-        .chat-input-bar {
-            padding: 14px 20px;
-            background: var(--md-sys-color-background);
-            border-top: 1px solid var(--md-sys-color-outline-variant);
+        .chat-footer {
+            padding: 16px 20px;
+            background: var(--bg-surface-elevated);
+            border-top: 1px solid var(--border-color);
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .chat-input {
+        .chat-input-field {
             flex: 1;
-            padding: 12px 18px;
-            border: 1px solid var(--md-sys-color-outline);
-            border-radius: var(--md-shape-corner-full);
-            background: var(--md-sys-color-surface);
+            padding: 12px 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-full);
+            color: var(--text-primary);
             font-size: 0.95rem;
             outline: none;
         }
 
-        .chat-input:focus {
-            border-color: var(--md-sys-color-primary);
+        .chat-input-field:focus {
+            border-color: var(--border-color-focus);
         }
 
-        /* الجداول */
-        table.data-table {
+        /* الجداول الأنيقة */
+        .table-responsive {
+            overflow-x: auto;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+        }
+
+        table.exec-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.92rem;
-        }
-
-        table.data-table th, table.data-table td {
-            padding: 12px 16px;
             text-align: right;
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            font-size: 0.9rem;
         }
 
-        table.data-table th {
-            background: var(--md-sys-color-surface-variant);
-            color: var(--md-sys-color-on-surface-variant);
-            font-weight: 600;
+        table.exec-table th {
+            background: var(--bg-surface-elevated);
+            color: var(--text-secondary);
+            font-weight: 700;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        /* التذييل */
-        footer {
+        table.exec-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        footer.system-footer {
             text-align: center;
-            padding: 20px;
-            font-size: 0.82rem;
-            color: var(--md-sys-color-on-surface-variant);
-            border-top: 1px solid var(--md-sys-color-outline-variant);
-            background: var(--md-sys-color-surface);
+            padding: 24px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-surface);
         }
     </style>
 </head>
 <body>
 
-    <header class="top-app-bar">
-        <div class="brand-container">
-            <div class="brand-logo">سـ</div>
-            <div class="brand-text">
+    <header class="top-nav">
+        <div class="brand-box">
+            <div class="brand-badge">سـ</div>
+            <div class="brand-info">
                 <h1>سند (Sanad)</h1>
                 <p>السكرتير الشخصي الذكي — لوحة التحكم المركزية</p>
             </div>
         </div>
 
-        <div class="header-actions">
-            <div class="status-badge">
-                <span class="status-dot"></span>
-                <span>الخادم نشط وجاهز</span>
+        <div class="nav-actions">
+            <div class="hub-pill">
+                <span class="live-dot"></span>
+                <span>متصل بالخادم المنزلي (ZimaOS Hub)</span>
             </div>
-            <a href="/docs" target="_blank" class="btn-docs">
+
+            <button class="btn-theme-toggle" onclick="toggleTheme()" title="تبديل المظهر الليلي/النهاري">
+                🌓
+            </button>
+
+            <a href="/docs" target="_blank" class="btn-api-docs">
                 <span>توثيق الـ API</span>
-                <span style="font-size: 10px;">↗</span>
+                <span style="font-size: 11px;">↗</span>
             </a>
         </div>
     </header>
 
-    <main class="container">
-        <!-- شبكة الإحصائيات السريعة -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">📱</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="stat-devices">-</div>
-                    <div class="stat-label">الأجهزة المقترنة</div>
+    <main class="main-wrapper">
+        <!-- شريط الإحصائيات الذكية السريعة -->
+        <div class="stats-row">
+            <div class="metric-card">
+                <div class="metric-icon">📱</div>
+                <div class="metric-data">
+                    <div class="metric-value" id="count-devices">-</div>
+                    <div class="metric-label">الأجهزة المقترنة المصرحة</div>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon">🛡️</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="stat-policies">-</div>
-                    <div class="stat-label">التطبيقات المراقبة</div>
+
+            <div class="metric-card">
+                <div class="metric-icon">🛡️</div>
+                <div class="metric-data">
+                    <div class="metric-value" id="count-policies">-</div>
+                    <div class="metric-label">التطبيقات المراقبة والردود</div>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon">📥</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="stat-events">-</div>
-                    <div class="stat-label">الأحداث والرسائل المؤرشفة</div>
+
+            <div class="metric-card">
+                <div class="metric-icon">📥</div>
+                <div class="metric-data">
+                    <div class="metric-value" id="count-events">-</div>
+                    <div class="metric-label">أحداث الرسائل والمزامنة</div>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon">🔒</div>
-                <div class="stat-content">
-                    <div class="stat-value" id="stat-audit">سليم</div>
-                    <div class="stat-label">سجل التدقيق (R-16)</div>
+
+            <div class="metric-card">
+                <div class="metric-icon">🔒</div>
+                <div class="metric-data">
+                    <div class="metric-value" style="color: var(--color-success);" id="count-audit">سليم</div>
+                    <div class="metric-label">سجل التدقيق المشفر (R-16)</div>
                 </div>
             </div>
         </div>
 
-        <!-- شريط التبويبات -->
-        <nav class="tabs-nav">
-            <button class="tab-btn active" onclick="switchTab('pairing')">📱 ربط الأجهزة (Pairing)</button>
-            <button class="tab-btn" onclick="switchTab('chat')">💬 محادثة سند المباشرة (Web Chat)</button>
-            <button class="tab-btn" onclick="switchTab('devices')">📋 الأجهزة المقترنة</button>
-            <button class="tab-btn" onclick="switchTab('security')">🛡️ قواعد الأمان والصحة</button>
+        <!-- التبويبات التنفيذية -->
+        <nav class="tabs-header">
+            <button class="tab-item active" onclick="activateTab('pairing')">
+                <span>📷 ربط الهاتف عبر QR</span>
+            </button>
+            <button class="tab-item" onclick="activateTab('chat')">
+                <span>💬 محادثة سند المباشرة</span>
+            </button>
+            <button class="tab-item" onclick="activateTab('devices')">
+                <span>📋 إدارة الأجهزة المقترنة</span>
+            </button>
+            <button class="tab-item" onclick="activateTab('security')">
+                <span>🛡️ قواعد الخصوصية والأمان</span>
+            </button>
         </nav>
 
-        <!-- تبويب الاقتران ورمز QR -->
-        <div id="tab-pairing" class="tab-pane active">
-            <div class="card">
-                <div class="card-title">🔗 توليد رمز اقتران جديد لربط تطبيق الجوال</div>
-                <div class="card-subtitle">
-                    اضغط على الزر أدناه لتوليد رمز أمان فوري ومسحه بكاميرا هاتفك أو نسخه إلى تطبيق سند.
+        <!-- تبويب الاقتران ورمز QR التفاعلي -->
+        <section id="section-pairing" class="tab-content active">
+            <div class="panel-card" style="padding: 32px;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span>📱 ربط واقتران تطبيق الجوال بالخادم</span>
+                    </div>
+                    <div class="panel-desc">
+                        قم بتوليد رمز أمان جديد ومسحه بكاميرا هاتفك من داخل تطبيق سند ليتم تبادل المفاتيح والتشفير محلياً وفورياً.
+                    </div>
                 </div>
 
                 <div style="margin-bottom: 24px;">
-                    <button class="btn-primary" onclick="generateNewPairingCode()">
-                        <span>🔑 توليد رمز اقتران جديد الآن</span>
+                    <button class="btn-exec-primary" onclick="requestNewPairingCode()">
+                        <span>⚡ توليد رمز اقتران جديد الآن</span>
                     </button>
                 </div>
 
-                <div id="pairing-result" style="display: none;" class="pairing-box">
-                    <div class="code-display">
-                        <div style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant);">رمز الاقتران (128-bit Code):</div>
-                        <div class="code-text" id="raw-code-text">----------------</div>
-                        <div style="font-size: 0.8rem; color: var(--md-sys-color-warning);" id="expires-text">الصلاحية: 10 دقائق</div>
-                        <div style="margin-top: 14px;">
-                            <button class="btn-secondary" onclick="copyCode()">📋 نسخ الرمز</button>
+                <div id="pairing-active-area" style="display: none;" class="pairing-container">
+                    <div class="guide-steps">
+                        <div class="step-item">
+                            <div class="step-num">1</div>
+                            <div class="step-text">
+                                <h4>افتح تطبيق سند على هاتفك الأندرويد</h4>
+                                <p>ثبّت التطبيق وافتحه، ستجد في الشاشة الأولى خيار "مسح رمز الـ QR".</p>
+                            </div>
+                        </div>
+
+                        <div class="step-item">
+                            <div class="step-num">2</div>
+                            <div class="step-text">
+                                <h4>وجّه كاميرا الهاتف نحو رمز الـ QR المقابل</h4>
+                                <p>سيقوم التطبيق بالتقاط عنوان السيرفر والرمز المشفر تلقائياً دون أي كتابة يدوية.</p>
+                            </div>
+                        </div>
+
+                        <div class="step-item">
+                            <div class="step-num">3</div>
+                            <div class="step-text">
+                                <h4>أو انسخ الرمز المكون من مقاطع بالأسفل</h4>
+                                <p>إذا فضّلت الإدخال اليدوي، يمكنك نسخ الرمز المنسق أدناه ولصقه في التطبيق.</p>
+                            </div>
+                        </div>
+
+                        <div class="code-vault">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 700;">رمز الاقتران المنسق (Pairing Code):</div>
+                            <div class="segmented-code" id="segmented-code-display">
+                                <span class="code-chunk">----</span>
+                                <span class="code-chunk">----</span>
+                                <span class="code-chunk">----</span>
+                                <span class="code-chunk">----</span>
+                            </div>
+                            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 14px;">
+                                <button class="btn-exec-secondary" onclick="copyPairingCode()">📋 نسخ الرمز</button>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="qr-canvas-container">
-                        <div style="font-size: 0.88rem; font-weight: 600; margin-bottom: 12px; color: var(--md-sys-color-primary);">
-                            امسح الرمز من تطبيق سند:
+                    <div class="qr-hero-card">
+                        <div style="color: #0F172A; font-weight: 800; font-size: 1.05rem; margin-bottom: 16px;">
+                            امسح الرمز بكاميرا تطبيق سند
                         </div>
-                        <div id="qrcode-box" style="padding: 10px; background: #fff;"></div>
-                        <div style="font-size: 0.78rem; color: #666; margin-top: 8px;">يحتوي على رابط الخادم وكود الأمان المشفر</div>
+                        <div class="qr-placeholder" id="qr-target-box"></div>
+                        <div style="color: #64748B; font-size: 0.82rem; margin-top: 14px; text-align: center;">
+                            صلاحية الرمز: 10 دقائق من وقت التوليد
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- تبويب المحادثة المباشرة -->
-        <div id="tab-chat" class="tab-pane">
-            <div class="card" style="padding: 0;">
-                <div class="chat-container">
-                    <div class="chat-messages" id="chat-messages">
-                        <div class="msg-bubble msg-assistant">
-                            مرحباً بك! أنا سند سكرتيرك الشخصي الذكي. يمكنك التحدث معي مباشرة من هنا أو سؤالي عن مواعيدك وتذكيراتك أو طلب إنشاء مستند Word أو جدول Excel.
-                        </div>
-                    </div>
-
-                    <div class="chat-input-bar">
-                        <input type="text" class="chat-input" id="chat-input" placeholder="اكتب طلبك لسند واضغط Enter..." onkeydown="handleChatKey(event)">
-                        <button class="btn-primary" onclick="sendChatMessage()">إرسال</button>
+        <!-- تبويب محادثة سند المباشرة -->
+        <section id="section-chat" class="tab-content">
+            <div class="web-chat-card">
+                <div class="chat-stream" id="chat-messages-stream">
+                    <div class="chat-bubble bubble-bot">
+                        أهلاً بك! أنا <strong>سند</strong> سكرتيرك الشخصي الذكي. يمكنك سؤالي عن جدول أعمالك، طلب تلخيص الرسائل، أو إنشاء مستندات Word وجداول Excel وعروض تقديمية مباشرة من المتصفح.
                     </div>
                 </div>
+
+                <div class="chat-footer">
+                    <input type="text" class="chat-input-field" id="chat-query-input" placeholder="اكتب استفسارك أو طلبك لسند واضغط Enter..." onkeydown="handleChatSubmit(event)">
+                    <button class="btn-exec-primary" onclick="submitChatMessage()">إرسال</button>
+                </div>
             </div>
-        </div>
+        </section>
 
         <!-- تبويب الأجهزة المقترنة -->
-        <div id="tab-devices" class="tab-pane">
-            <div class="card">
-                <div class="card-title">📱 قائمة الأجهزة المصرح لها بالاتصال</div>
-                <div class="card-subtitle">الأجهزة الموثقة بمفاتيح Android Keystore الخاصة (P-256).</div>
+        <section id="section-devices" class="tab-content">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div class="panel-title">📱 الأجهزة المصرح لها بالاتصال عبر Android Keystore</div>
+                    <div class="panel-desc">يتم التحقق من كل جهاز عبر مفتاح غير متناظر P-256 مشفر عتادياً.</div>
+                </div>
 
-                <div style="overflow-x: auto;">
-                    <table class="data-table">
+                <div class="table-responsive">
+                    <table class="exec-table">
                         <thead>
                             <tr>
                                 <th>اسم الجهاز</th>
-                                <th>معرف الجهاز (Device ID)</th>
+                                <th>المعرف الرقمي</th>
                                 <th>إصدار التطبيق</th>
                                 <th>تاريخ الاقتران</th>
-                                <th>آخر اتصال</th>
+                                <th>آخر نشاط</th>
                             </tr>
                         </thead>
-                        <tbody id="devices-table-body">
-                            <tr><td colspan="5" style="text-align: center; color: #888;">جارِ التحميل...</td></tr>
+                        <tbody id="devices-listing-body">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">جارِ جلب الأجهزة...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- تبويب الأمان والصحة -->
-        <div id="tab-security" class="tab-pane">
-            <div class="card">
-                <div class="card-title">🔒 سلامة المنظومة وقواعد الأمان (R-01 إلى R-22)</div>
-                <div class="card-subtitle">فحص آلي لسلامة التشفير ومطابقة القرارات المعمارية.</div>
+        <!-- تبويب الخصوصية والأمان -->
+        <section id="section-security" class="tab-content">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div class="panel-title">🔒 سلامة المنظومة ومطابقة القواعد الأمنية (R-01 إلى R-22)</div>
+                    <div class="panel-desc">تقرير التدقيق الأمني الآلي للخادم المنزلي.</div>
+                </div>
 
-                <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; padding: 0;">
-                    <li style="padding: 10px 14px; background: var(--md-sys-color-surface-variant); border-radius: 8px; display: flex; justify-content: space-between;">
-                        <span>🛡️ R-01: عدم تنفيذ أي إجراء خارجي دون موافقة بشرية صريحة (HITL)</span>
-                        <strong style="color: var(--md-sys-color-success);">مفعل ومطبق</strong>
-                    </li>
-                    <li style="padding: 10px 14px; background: var(--md-sys-color-surface-variant); border-radius: 8px; display: flex; justify-content: space-between;">
-                        <span>🔐 R-15: تشفير البيانات الحساسة عبر AES-256-GCM محلياً</span>
-                        <strong style="color: var(--md-sys-color-success);">مفعل ومطبق</strong>
-                    </li>
-                    <li style="padding: 10px 14px; background: var(--md-sys-color-surface-variant); border-radius: 8px; display: flex; justify-content: space-between;">
-                        <span>📜 R-16: سجل تدقيق غير قابل للتلاعب متسلسل التجزئة (Hash Chained)</span>
-                        <strong style="color: var(--md-sys-color-success);" id="sec-audit-status">سليم ومتحقق</strong>
-                    </li>
-                    <li style="padding: 10px 14px; background: var(--md-sys-color-surface-variant); border-radius: 8px; display: flex; justify-content: space-between;">
-                        <span>⚡ R-17: قاطع الطوارئ الآلي وتجميد الحسابات عند الشك</span>
-                        <strong style="color: var(--md-sys-color-success);">جاهز</strong>
-                    </li>
-                </ul>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>🛡️ R-01: الاعتماد البشري الإلزامي (HITL)</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">لا يتم تنفيذ أي رد خارجي أو إرسال بريد دون إذنك الصريح.</div>
+                        </div>
+                        <span style="color: var(--color-success); font-weight: 700;">مفعل ومحمي</span>
+                    </div>
+
+                    <div style="padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>🔐 R-15: تشفير البيانات الحساسة عبر AES-256-GCM</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">رموز المصادقة وتوكينات الحسابات مشفرة بمفتاح فريد محلياً.</div>
+                        </div>
+                        <span style="color: var(--color-success); font-weight: 700;">مفعل ومحمي</span>
+                    </div>
+
+                    <div style="padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>📜 R-16: سلسلة التدقيق المتسلسلة (Cryptographic Audit Trail)</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">سجل غير قابل للتلاعب يربط كل عملية بـ SHA-256 السابقة.</div>
+                        </div>
+                        <span style="color: var(--color-success); font-weight: 700;" id="sec-audit-badge">سليم ومتحقق</span>
+                    </div>
+
+                    <div style="padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>🚫 R-08 & R-19: حظر المزودات المجانية وحماية البيانات السرية</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">حظر إرسال أرقام الهواتف أو كلمات المرور لأي نموذج خارجي.</div>
+                        </div>
+                        <span style="color: var(--color-success); font-weight: 700;">مفعل ومحمي</span>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
     </main>
 
-    <footer>
-        سند (Sanad) — مشروع السكرتير الشخصي الذكي • متصل عبر شبكتك المنزلية الخاصة ZimaOS
+    <footer class="system-footer">
+        سند (Sanad) — السكرتير الشخصي الذكي • يعمل عبر بيئة الخادم المنزلي ZimaOS
     </footer>
 
-    <!-- مولد QR Code محلي خفيف الوزن بدون اتصال خارجي -->
-    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+    <!-- مكتبة QR Code خفيفة وموثوقة -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script>
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        let currentPairingCodeRaw = "";
 
-            const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
-            if (activeBtn) activeBtn.classList.add('active');
-
-            const activePane = document.getElementById('tab-' + tabId);
-            if (activePane) activePane.classList.add('active');
-
-            if (tabId === 'devices') loadDevices();
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const target = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', target);
+            localStorage.setItem('sanad_theme', target);
         }
 
-        async function loadStats() {
+        // استعادة السمة المحفوظة
+        (function initTheme() {
+            const saved = localStorage.getItem('sanad_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+
+        function activateTab(tabId) {
+            document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+
+            const targetBtn = Array.from(document.querySelectorAll('.tab-item')).find(b => b.getAttribute('onclick').includes(tabId));
+            if (targetBtn) targetBtn.classList.add('active');
+
+            const targetSection = document.getElementById('section-' + tabId);
+            if (targetSection) targetSection.classList.add('active');
+
+            if (tabId === 'devices') refreshDevicesList();
+        }
+
+        async function fetchSystemStats() {
             try {
                 const res = await fetch('/v1/web/stats');
                 if (res.ok) {
                     const data = await res.json();
-                    document.getElementById('stat-devices').innerText = data.devices_count;
-                    document.getElementById('stat-policies').innerText = data.policies_count;
-                    document.getElementById('stat-events').innerText = data.events_count;
-                    document.getElementById('stat-audit').innerText = data.audit_chain_valid ? 'سليم ومتحقق' : 'تحذير';
-                    document.getElementById('sec-audit-status').innerText = data.audit_chain_valid ? 'سليم ومتحقق' : 'تنبيه';
+                    document.getElementById('count-devices').innerText = data.devices_count;
+                    document.getElementById('count-policies').innerText = data.policies_count;
+                    document.getElementById('count-events').innerText = data.events_count;
+                    document.getElementById('count-audit').innerText = data.audit_chain_valid ? 'سليم' : 'تنبيه';
+                    document.getElementById('sec-audit-badge').innerText = data.audit_chain_valid ? 'سليم ومتحقق' : 'تحذير';
                 }
             } catch (err) {
-                console.warn('Stats fetch error:', err);
+                console.warn('Stats error:', err);
             }
         }
 
-        async function generateNewPairingCode() {
+        async function requestNewPairingCode() {
             try {
                 const res = await fetch('/v1/web/pairing-code', { method: 'POST' });
                 if (res.ok) {
                     const data = await res.json();
-                    document.getElementById('raw-code-text').innerText = data.code;
-                    document.getElementById('pairing-result').style.display = 'grid';
+                    currentPairingCodeRaw = data.code;
 
+                    // تقسيم الرمز لمقاطع رباعية سهلة القراءة
+                    const chunks = data.code.match(/.{1,4}/g) || [data.code];
+                    const segmentedDisplay = document.getElementById('segmented-code-display');
+                    segmentedDisplay.innerHTML = chunks.map(c => `<span class="code-chunk">${c}</span>`).join('');
+
+                    document.getElementById('pairing-active-area').style.display = 'grid';
+
+                    // إنشاء حمولة QR تتضمن رابط الخادم الحالي وكود الاقتران
                     const serverUrl = window.location.origin;
-                    const fullPayload = JSON.stringify({ server_url: serverUrl, code: data.code });
+                    const qrPayload = JSON.stringify({ server_url: serverUrl, code: data.code });
 
-                    const qrBox = document.getElementById('qrcode-box');
+                    const qrBox = document.getElementById('qr-target-box');
                     qrBox.innerHTML = '';
                     if (typeof QRCode !== 'undefined') {
                         new QRCode(qrBox, {
-                            text: fullPayload,
-                            width: 180,
-                            height: 180,
-                            colorDark : "#1E3A5F",
-                            colorLight : "#ffffff",
+                            text: qrPayload,
+                            width: 200,
+                            height: 200,
+                            colorDark : "#0F172A",
+                            colorLight : "#FFFFFF",
                             correctLevel : QRCode.CorrectLevel.M
                         });
                     } else {
-                        qrBox.innerText = fullPayload;
+                        qrBox.innerText = qrPayload;
                     }
+
+                    // التمرير السلس لمنطقة الـ QR
+                    document.getElementById('pairing-active-area').scrollIntoView({ behavior: 'smooth' });
                 }
             } catch (err) {
                 alert('فشل توليد رمز الاقتران: ' + err.message);
             }
         }
 
-        function copyCode() {
-            const code = document.getElementById('raw-code-text').innerText;
-            navigator.clipboard.writeText(code).then(() => {
-                alert('تم نسخ رمز الاقتران إلى الحافظة بنجاح!');
+        function copyPairingCode() {
+            if (!currentPairingCodeRaw) return;
+            navigator.clipboard.writeText(currentPairingCodeRaw).then(() => {
+                alert('تم نسخ رمز الاقتران بنجاح!');
             });
         }
 
-        async function loadDevices() {
+        async function refreshDevicesList() {
             try {
                 const res = await fetch('/v1/web/devices');
                 if (res.ok) {
-                    const list = await res.json();
-                    const tbody = document.getElementById('devices-table-body');
-                    if (list.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888;">لا توجد أجهزة مقترنة بعد. استخدم تبويب ربط الأجهزة لربط هاتفك.</td></tr>';
+                    const devices = await res.json();
+                    const tbody = document.getElementById('devices-listing-body');
+                    if (devices.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">لا توجد أجهزة مقترنة حتى الآن. امسح رمز الـ QR من هاتفك لربطه.</td></tr>';
                     } else {
-                        tbody.innerHTML = list.map(d => `
+                        tbody.innerHTML = devices.map(d => `
                             <tr>
                                 <td><strong>${d.name || 'هاتف أندرويد'}</strong></td>
                                 <td><code>${d.id}</code></td>
@@ -707,37 +964,39 @@
             }
         }
 
-        function handleChatKey(e) {
-            if (e.key === 'Enter') sendChatMessage();
+        function handleChatSubmit(e) {
+            if (e.key === 'Enter') submitChatMessage();
         }
 
-        function sendChatMessage() {
-            const input = document.getElementById('chat-input');
+        function submitChatMessage() {
+            const input = document.getElementById('chat-query-input');
             const text = input.value.trim();
             if (!text) return;
 
-            const chatMessages = document.getElementById('chat-messages');
+            const stream = document.getElementById('chat-messages-stream');
 
             const userMsg = document.createElement('div');
-            userMsg.className = 'msg-bubble msg-user';
+            userMsg.className = 'chat-bubble bubble-user';
             userMsg.innerText = text;
-            chatMessages.appendChild(userMsg);
+            stream.appendChild(userMsg);
 
             input.value = '';
 
             setTimeout(() => {
                 const botMsg = document.createElement('div');
-                botMsg.className = 'msg-bubble msg-assistant';
-                botMsg.innerText = 'أهلاً بك! أنا متصل ومستعد لمعاونتك. لضمان أفضل تجربة مع الصلاحيات وقراءة الرسائل، يمكنك استخدام تطبيق الجوال المقترن أو سؤالي عن الملفات والجدولة.';
-                chatMessages.appendChild(botMsg);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                botMsg.className = 'chat-bubble bubble-bot';
+                botMsg.innerText = 'أهلاً بك! لقد استلمت طلبك وجارِ معالجته محلياً. لضمان أفضل تجربة مع الصلاحيات والردود الفورية، استخدم تطبيق الجوال المقترن أو اسألني عن أي مهمة مكتبية.';
+                stream.appendChild(botMsg);
+                stream.scrollTop = stream.scrollHeight;
             }, 500);
 
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            stream.scrollTop = stream.scrollHeight;
         }
 
         window.onload = () => {
-            loadStats();
+            fetchSystemStats();
+            // توليد رمز اقتران أولي تلقائياً للتسهيل الفوري على المستخدم!
+            requestNewPairingCode();
         };
     </script>
 </body>

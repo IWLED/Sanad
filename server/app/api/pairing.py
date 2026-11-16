@@ -48,11 +48,22 @@ async def pair_device(
     """التحقق من رمز الاقتران وتوثيق المفتاح العام وإصدار رموز الجلسة (Section 8.1)."""
     now_iso = datetime.now(UTC).isoformat()
 
-    # 1. فحص رمز الاقتران
-    code_hash = hash_with_pepper(req.code)
+    # 1. فحص رمز الاقتران بدعم المرونة في الأحرف الكبيرة/الصغيرة والمسافات والشرطات
+    clean_code = req.code.strip().replace(" ", "").replace("-", "")
+    code_hash = hash_with_pepper(clean_code.upper())
     stmt = select(PairingCode).where(PairingCode.code_hash == code_hash)
     result = await session.execute(stmt)
     pairing_record = result.scalar_one_or_none()
+
+    if not pairing_record:
+        for alt in [req.code.strip(), clean_code.lower()]:
+            alt_hash = hash_with_pepper(alt)
+            alt_stmt = select(PairingCode).where(PairingCode.code_hash == alt_hash)
+            alt_res = await session.execute(alt_stmt)
+            alt_record = alt_res.scalar_one_or_none()
+            if alt_record:
+                pairing_record = alt_record
+                break
 
     if not pairing_record:
         raise HTTPException(

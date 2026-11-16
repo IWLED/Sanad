@@ -3,6 +3,7 @@ package app.secretary
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +37,8 @@ import app.secretary.outbox.OutboxSyncWorker
 import app.secretary.ui.ChatScreen
 import app.secretary.ui.PoliciesScreen
 import app.secretary.ui.theme.SanadTheme
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -229,6 +233,28 @@ fun PairingScreen(
     var showAdvancedOptions by remember { mutableStateOf(false) }
     var rawQrInput by remember { mutableStateOf("") }
 
+    val qrScannerLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        if (result.contents != null) {
+            val payload = result.contents.trim()
+            try {
+                val json = JSONObject(payload)
+                val parsedUrl = json.optString("server_url", "")
+                val parsedCode = json.optString("code", "")
+                if (parsedUrl.isNotBlank() && parsedCode.isNotBlank()) {
+                    serverUrl = parsedUrl
+                    pairingCode = parsedCode.uppercase()
+                    onPair(parsedUrl, parsedCode.uppercase())
+                    return@rememberLauncherForActivityResult
+                }
+            } catch (_: Exception) {}
+
+            pairingCode = payload.uppercase()
+            if (serverUrl.isNotBlank()) {
+                onPair(serverUrl, payload.uppercase())
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -299,11 +325,56 @@ fun PairingScreen(
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        text = "بيانات الربط مع السيرفر",
+                        text = "طرق الاقتران السريع",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // خيار المسح المباشر عبر الكاميرا
+                    Button(
+                        onClick = {
+                            val options = ScanOptions().apply {
+                                setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                                setPrompt("وجّه كاميرا هاتفك نحو رمز الـ QR على شاشة السيرفر")
+                                setBeepEnabled(true)
+                                setOrientationLocked(false)
+                            }
+                            qrScannerLauncher.launch(options)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        contentPadding = PaddingValues(vertical = 14.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "مسح رمز الـ QR من شاشة السيرفر",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "  أو الإدخال اليدوي للرمز  ",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -344,10 +415,11 @@ fun PairingScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    Button(
+                    OutlinedButton(
                         onClick = {
-                            if (serverUrl.isNotBlank() && pairingCode.isNotBlank()) {
-                                onPair(serverUrl.trim(), pairingCode.trim())
+                            val cleanCode = pairingCode.trim().replace(" ", "").replace("-", "").uppercase()
+                            if (serverUrl.isNotBlank() && cleanCode.isNotBlank()) {
+                                onPair(serverUrl.trim(), cleanCode)
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -362,7 +434,7 @@ fun PairingScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "اقتران وبدء العمل",
+                            "اقتران يدوي بالخادم",
                             style = MaterialTheme.typography.labelLarge
                         )
                     }
