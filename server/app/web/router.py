@@ -6,8 +6,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, status
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -129,6 +129,25 @@ async def get_web_devices(
         }
         for d in devices
     ]
+
+
+@router.get("/download/app", response_class=FileResponse)
+@router.get("/app-debug.apk", response_class=FileResponse)
+async def download_apk() -> FileResponse:
+    """تحميل ملف APK لتطبيق الجوال المحدث مباشرة من الخادم."""
+    candidates = [
+        Path("/data/app-debug.apk"),
+        Path("/exports/app-debug.apk"),
+        Path("/app/app-debug.apk"),
+    ]
+    for p in candidates:
+        if p.is_file():
+            return FileResponse(
+                path=str(p),
+                filename="Sanad-v0.1.0.apk",
+                media_type="application/vnd.android.package-archive",
+            )
+    raise HTTPException(status_code=404, detail="APK file not found on server")
 
 
 @router.get("/", response_class=HTMLResponse)
