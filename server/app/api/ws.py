@@ -2,6 +2,7 @@
 
 import json
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select, update
@@ -84,7 +85,7 @@ async def websocket_endpoint(
         connection_manager.disconnect(device_id, websocket)
 
 
-async def handle_hello(device_id: str, payload: dict) -> None:
+async def handle_hello(device_id: str, payload: dict[str, Any]) -> None:
     """معالجة إطار hello واستئناف الرسائل الفائتة منذ last_seq (Section 8.3)."""
     last_seq = payload.get("last_seq", 0)
 
@@ -133,7 +134,7 @@ async def handle_hello(device_id: str, payload: dict) -> None:
             await session.commit()
 
 
-async def handle_ack(device_id: str, payload: dict) -> None:
+async def handle_ack(device_id: str, payload: dict[str, Any]) -> None:
     """تأكيد تسلم الجهاز للرسائل الصادرة وتحديث acked_at."""
     acked_seq = payload.get("seq")
     if not isinstance(acked_seq, int):
@@ -154,7 +155,7 @@ async def handle_ack(device_id: str, payload: dict) -> None:
         await session.commit()
 
 
-async def handle_app_message(device_id: str, msg_type: str, payload: dict) -> None:
+async def handle_app_message(device_id: str, msg_type: str, payload: dict[str, Any]) -> None:
     """نقطة ربط رسائل التطبيق مع حلقة الوكيل ومحرك HITL."""
     from app.core.agent.dispatcher_hook import route_incoming_ws_message
 

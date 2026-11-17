@@ -246,7 +246,7 @@ async def update_web_models(
 
         from app.core.agent.loop import agent_runner
 
-        agent_runner.client = LLMClient(config=new_config)
+        agent_runner.llm = LLMClient(config=new_config)
 
         await append_audit_log(
             session,
