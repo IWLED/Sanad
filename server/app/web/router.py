@@ -15,7 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.audit import append_audit_log, verify_audit_chain
 from app.core.crypto import hash_with_pepper
 from app.core.llm.client import LLMClient, test_model_connection
-from app.core.llm.profiles import ModelsConfig, ProfileConfig, load_models_config, save_models_config
+from app.core.llm.profiles import (
+    ModelsConfig,
+    ProfileConfig,
+    load_models_config,
+    save_models_config,
+)
 from app.db.base import get_db_session
 from app.db.models import AppPolicy, Device, Event, PairingCode
 
@@ -269,7 +274,7 @@ async def update_web_models(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"فشل التحقق من الإعدادات: {e}",
-        )
+        ) from e
 
 
 @router.post("/v1/web/models/test")
@@ -313,8 +318,12 @@ async def web_chat(req: WebChatRequest) -> WebChatResponse:
             latency_ms=resp.latency_ms,
         )
     except Exception as e:
+        err_msg = (
+            f"عذراً، حدث خطأ أثناء الاتصال بنموذج الذكاء الاصطناعي: {e}. "
+            "يرجى التحقق من إعدادات النماذج ومفتاح API في تبويب (إعدادات النماذج)."
+        )
         return WebChatResponse(
-            reply=f"عذراً، حدث خطأ أثناء الاتصال بنموذج الذكاء الاصطناعي: {e}. يرجى التحقق من إعدادات النماذج ومفتاح API في تبويب (إعدادات النماذج).",
+            reply=err_msg,
             model_used="none",
             latency_ms=0,
         )
