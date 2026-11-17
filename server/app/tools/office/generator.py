@@ -3,6 +3,8 @@
 import hashlib
 import os
 import secrets
+import tempfile
+from pathlib import Path
 from typing import Any
 
 import openpyxl  # type: ignore[import-untyped]
@@ -149,8 +151,12 @@ def create_office_document(
     exports_dir: str | None = None,
 ) -> dict[str, Any]:
     """المعالج المركزي لإنشاء مستند Office وحفظه وتوليد بياناته الوصفية."""
-    out_dir = exports_dir or settings.exports_dir
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = Path(exports_dir or settings.exports_dir)
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+    except (PermissionError, OSError):
+        out_dir = Path(tempfile.gettempdir()) / "exports"
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     file_id = f"fil_{secrets.token_hex(8)}"
 

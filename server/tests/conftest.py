@@ -1,11 +1,19 @@
 """إعدادات وتجهيز بيئة الاختبار لقاعدة البيانات وpytest."""
 
+import tempfile
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 import pytest
 from sqlalchemy import text
 
+from app.config import settings
 from app.db.base import Base, engine
+
+# ضمان وجود مجلد تصدير قابل للكتابة أثناء بيئة الاختبار والـ CI
+test_exports_dir = Path(tempfile.gettempdir()) / "sanad_test_exports"
+test_exports_dir.mkdir(parents=True, exist_ok=True)
+settings.exports_dir = test_exports_dir
 
 CREATE_FTS5_SQL = """
 CREATE VIRTUAL TABLE IF NOT EXISTS events_fts USING fts5(

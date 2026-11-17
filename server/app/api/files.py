@@ -3,6 +3,7 @@
 import hashlib
 import os
 import re
+import tempfile
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -52,7 +53,11 @@ async def upload_file(
     file_id = f"file_{uuid.uuid4().hex[:12]}"
 
     upload_dir = Path(settings.exports_dir) / "uploads"
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        upload_dir.mkdir(parents=True, exist_ok=True)
+    except (PermissionError, OSError):
+        upload_dir = Path(tempfile.gettempdir()) / "exports" / "uploads"
+        upload_dir.mkdir(parents=True, exist_ok=True)
     target_path = upload_dir / f"{file_id}_{safe_filename}"
 
     with open(target_path, "wb") as f:
