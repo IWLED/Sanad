@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -687,10 +688,14 @@ fun ServerInfoDialog(
     onDisconnect: () -> Unit,
     onUnpair: () -> Unit
 ) {
+    val context = LocalContext.current
+    val currentVersion = "1.1.0"
+    val repoUrl = "https://github.com/IWLED/Sanad"
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(text = "معلومات اتصال السيرفر", fontWeight = FontWeight.Bold)
+            Text(text = "معلومات اتصال السيرفر والتحديثات", fontWeight = FontWeight.Bold)
         },
         text = {
             Column {
@@ -707,9 +712,42 @@ fun ServerInfoDialog(
                         modifier = Modifier.padding(10.dp)
                     )
                 }
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "• قطع الاتصال: يوقف اتصال الـ WebSocket المؤقت.\n• إلغاء الاقتران: يحذف الجلسة المفاتيح ويتطلب مسح رمز باركود جديد.",
+                    text = "إصدار التطبيق الحالي: v$currentVersion",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        val obtainiumUri = android.net.Uri.parse("obtainium://app/$repoUrl")
+                        val webUri = android.net.Uri.parse("$repoUrl/releases")
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, obtainiumUri)
+                            context.startActivity(intent)
+                        } catch (_: Throwable) {
+                            try {
+                                val webIntent = Intent(Intent.ACTION_VIEW, webUri)
+                                context.startActivity(webIntent)
+                            } catch (_: Throwable) {}
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SystemUpdate,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("إدارة التحديثات عبر Obtainium")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "• قطع الاتصال: يوقف اتصال الـ WebSocket المؤقت.\n• إلغاء الاقتران: يحذف الجلسة والمفاتيح ويتطلب إعادة المسح.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
