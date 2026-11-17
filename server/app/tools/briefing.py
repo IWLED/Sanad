@@ -1,6 +1,7 @@
 """أداة استرجاع وتوليد الإيجاز اليومي الصباحي والمسائي للوكيل (Section 11.1)."""
 
 from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 from app.core.briefing.engine import generate_briefing

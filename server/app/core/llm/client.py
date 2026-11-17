@@ -6,9 +6,8 @@
 import os
 import time
 from datetime import UTC, datetime
-from typing import Any
-
 from pathlib import Path
+from typing import Any
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel
@@ -68,7 +67,11 @@ class LLMClient:
             return env_val
 
         # 3. إذا كان الرابط محلياً (Ollama/vLLM)
-        if "localhost" in entry.base_url or "127.0.0.1" in entry.base_url or "192.168." in entry.base_url:
+        if (
+            "localhost" in entry.base_url
+            or "127.0.0.1" in entry.base_url
+            or "192.168." in entry.base_url
+        ):
             return "local-no-key"
 
         return "dummy-key"

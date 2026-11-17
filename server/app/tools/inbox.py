@@ -151,8 +151,13 @@ class GetEventTool(BaseTool):
 
 class GetRecentMessagesArgs(BaseModel):
     limit: int = Field(default=10, ge=1, le=30, description="عدد الرسائل الأخيرة المطلوب استرجاعها")
-    source: str | None = Field(default=None, description="تصفية حسب المصدر مثل: sms أو notification أو call")
-    app_package: str | None = Field(default=None, description="تصفية حسب تطبيق محدد مثل: com.whatsapp أو com.samsung.android.messaging")
+    source: str | None = Field(
+        default=None, description="تصفية حسب المصدر مثل: sms أو notification أو call"
+    )
+    app_package: str | None = Field(
+        default=None,
+        description="تصفية حسب تطبيق محدد مثل: com.whatsapp أو com.samsung.android.messaging",
+    )
 
 
 class GetRecentMessagesTool(BaseTool):
@@ -209,7 +214,9 @@ class ReadDocumentTool(BaseTool):
     """قراءة محتوى ملف أو مستند تم رفعه من المستخدم لتحليله وتلخيصه."""
 
     name: str = "read_document"
-    description: str = "قراءة محتوى ملف أو مستند نصي تم رفعه إلى السكرتير لتحليله والإجابة عن محتواه"
+    description: str = (
+        "قراءة محتوى ملف أو مستند نصي تم رفعه إلى السكرتير لتحليله والإجابة عن محتواه"
+    )
     risk_tier: int = 1
     executor: str = "server"
     returns_untrusted: bool = True
@@ -218,6 +225,7 @@ class ReadDocumentTool(BaseTool):
     async def run(self, args: BaseModel, ctx: dict[str, Any]) -> dict[str, Any]:
         assert isinstance(args, ReadDocumentArgs)
         import os
+
         from app.db.models import File
 
         async with async_session_factory() as session:
@@ -228,7 +236,7 @@ class ReadDocumentTool(BaseTool):
                 return {"error": "الملف غير موجود على السيرفر"}
 
             try:
-                with open(file_rec.path, "r", encoding="utf-8", errors="ignore") as f:
+                with open(file_rec.path, encoding="utf-8", errors="ignore") as f:
                     text_content = f.read(args.max_chars)
                 safe_text = wrap_untrusted(text_content, source="file_upload", ref=file_rec.id)
                 return {

@@ -42,7 +42,9 @@ async def _handle_user_message(device_id: str, payload: dict[str, Any]) -> None:
     if not text and not attachments:
         await connection_manager.send_json(
             device_id,
-            make_envelope("error", {"code": "EMPTY_MESSAGE", "message": "Text or attachment cannot be empty"}),
+            make_envelope(
+                "error", {"code": "EMPTY_MESSAGE", "message": "Text or attachment cannot be empty"}
+            ),
         )
         return
 
@@ -60,6 +62,7 @@ async def _handle_user_message(device_id: str, payload: dict[str, Any]) -> None:
                 )
             else:
                 attach_notes.append(f"[مستند مرفق: {fname} (ID: {fid})]")
+        full_message = text
         if attach_notes:
             prefix = "\n\n".join(attach_notes)
             full_message = f"{prefix}\n\nطلب المستخدم: {text}" if text else prefix
@@ -68,7 +71,7 @@ async def _handle_user_message(device_id: str, payload: dict[str, Any]) -> None:
         try:
             await agent_runner.run(
                 device_id=device_id,
-                user_message=text,
+                user_message=full_message,
                 session=session,
             )
         except Exception as e:

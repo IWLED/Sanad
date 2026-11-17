@@ -7,7 +7,8 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File as FastAPIFile, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import File as FastAPIFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -61,7 +62,11 @@ async def upload_file(
 
     # محاولة استخراج نص مبدئي إذا كان الملف نصياً
     extracted_text: str | None = None
-    if any(mime_type.startswith(p) for p in ("text/", "application/json", "application/javascript")) or safe_filename.endswith((".txt", ".md", ".json", ".csv", ".log", ".yaml", ".yml", ".py", ".xml")):
+    if any(
+        mime_type.startswith(p) for p in ("text/", "application/json", "application/javascript")
+    ) or safe_filename.endswith(
+        (".txt", ".md", ".json", ".csv", ".log", ".yaml", ".yml", ".py", ".xml")
+    ):
         try:
             decoded = content.decode("utf-8", errors="ignore")
             extracted_text = decoded[:8000]

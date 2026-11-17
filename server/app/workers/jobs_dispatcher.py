@@ -80,9 +80,7 @@ async def process_due_jobs() -> int:
                             )
                             if not target_device_id:
                                 stmt_dev = (
-                                    select(Device.id)
-                                    .where(Device.revoked_at.is_(None))
-                                    .limit(1)
+                                    select(Device.id).where(Device.revoked_at.is_(None)).limit(1)
                                 )
                                 res_dev = await session.execute(stmt_dev)
                                 target_device_id = res_dev.scalar_one_or_none() or ""

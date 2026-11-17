@@ -241,9 +241,7 @@ async def update_web_models(
 ) -> dict[str, Any]:
     """تحديث ملف models.yaml وتطبيق الإعدادات على السكرتير فوراً."""
     try:
-        new_config = ModelsConfig.model_validate(
-            {"profiles": req.profiles, "policy": req.policy}
-        )
+        new_config = ModelsConfig.model_validate({"profiles": req.profiles, "policy": req.policy})
         save_models_config(new_config)
 
         from app.core.agent.loop import agent_runner
@@ -256,12 +254,10 @@ async def update_web_models(
             event="llm_models_config_updated",
             details={
                 "reasoner_models": [
-                    e.model
-                    for e in new_config.profiles.get("reasoner", ProfileConfig()).chain
+                    e.model for e in new_config.profiles.get("reasoner", ProfileConfig()).chain
                 ],
                 "fast_models": [
-                    e.model
-                    for e in new_config.profiles.get("fast", ProfileConfig()).chain
+                    e.model for e in new_config.profiles.get("fast", ProfileConfig()).chain
                 ],
             },
         )

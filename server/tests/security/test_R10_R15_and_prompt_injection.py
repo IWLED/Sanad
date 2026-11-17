@@ -101,13 +101,13 @@ def test_prompt_injection_sanitization_and_tag_defense() -> None:
 
     # 2. إزالة محارف Unicode Tag المخفية وتجاوزات Bidi الخبيثة
     hidden_attack = (
-        "رسالة عادية\U000E0001\U000E0020\U000E0041\U000E007F"
-        "\u202E\u2066نص خبيث ذو اتجاه معكوس\u2069"
+        "رسالة عادية\U000e0001\U000e0020\U000e0041\U000e007f"
+        "\u202e\u2066نص خبيث ذو اتجاه معكوس\u2069"
     )
     sanitized = sanitize_untrusted(hidden_attack)
-    assert "\U000E0001" not in sanitized
-    assert "\U000E007F" not in sanitized
-    assert "\u202E" not in sanitized
+    assert "\U000e0001" not in sanitized
+    assert "\U000e007f" not in sanitized
+    assert "\u202e" not in sanitized
 
     # 3. فحص فاحص تسريب البيانات DLP ضد تسريب الأسرار في مخرجات الوكيل
     draft_with_secrets = (

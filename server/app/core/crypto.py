@@ -131,4 +131,3 @@ def decrypt_data(ciphertext: bytes, key: bytes | None = None) -> str:
     ct = ciphertext[12:]
     decrypted_bytes = aesgcm.decrypt(nonce, ct, None)
     return decrypted_bytes.decode("utf-8")
-
